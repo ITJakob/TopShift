@@ -284,5 +284,18 @@
   "delay.report": "Report delay",
   "delay.reported": "Reported",
   "delay.empty": "No delays reported.",
-  "invite": "Invitation"
+  "invite": "Invitation",
+  "schedule.listView": "List view",
+  "schedule.noShiftsInPeriod": "No shifts in this period.",
+  "swaps.myCalendar": "My calendar",
+  "swaps.pickOwnShift": "Choose the shift you want to give away or swap.",
+  "swaps.availablePeople": "Matching coworkers",
+  "swaps.availablePeopleHint": "Only free or legally valid options are shown. The request goes directly to that person.",
+  "swaps.freeOnDay": "Free on this day",
+  "swaps.incoming": "Incoming swap requests",
+  "swaps.noIncoming": "No incoming swap requests.",
+  "swaps.noOutgoing": "No outgoing swap requests yet.",
+  "swaps.peerStatus": "Coworker approval",
+  "swaps.peerApprove": "Take over / approve",
+  "swaps.peerReject": "Reject"
 }

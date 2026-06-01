@@ -599,6 +599,52 @@ th {
   transform: translateY(-1px);
 }
 
+
+.selected-day {
+  border-color: rgba(96, 165, 250, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.28), 0 18px 48px rgba(15, 23, 42, 0.32);
+}
+
+.calendar-list-view {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.swap-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.mini-calendar-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.calendar-pick,
+.swap-option {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(17, 24, 39, 0.72);
+  box-shadow: none;
+  text-align: left;
+}
+
+.calendar-pick span,
+.swap-option span {
+  color: var(--muted);
+}
+
+.calendar-pick.selected,
+.swap-option.selected {
+  border-color: rgba(96, 165, 250, 0.78);
+  background: rgba(59, 130, 246, 0.18);
+}
+
 .special-day {
   border-color: rgba(251, 146, 60, 0.55);
   background: rgba(251, 146, 60, 0.09);
@@ -734,7 +780,8 @@ th {
   .auth-layout,
   .dashboard-header,
   .two-columns,
-  .schedule-layout {
+  .schedule-layout,
+  .swap-board {
     grid-template-columns: 1fr;
   }
 

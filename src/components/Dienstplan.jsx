@@ -30,6 +30,7 @@ const emptyShift = {
 export default function Dienstplan({ data, actions, user, t }) {
   const [view, setView] = useState('week');
   const [baseDate, setBaseDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [editingShiftId, setEditingShiftId] = useState('');
   const [form, setForm] = useState({ ...emptyShift, location: data.company.locations[0] || '' });
   const [overrideReason, setOverrideReason] = useState('');
@@ -50,6 +51,10 @@ export default function Dienstplan({ data, actions, user, t }) {
   );
 
   const days = useMemo(() => buildDays(view, baseDate), [view, baseDate]);
+  const visibleShifts = useMemo(
+    () => data.shifts.filter((shift) => days.some((day) => day.iso === shift.date)).sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`)),
+    [data.shifts, days],
+  );
 
   function updateForm(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -107,7 +112,15 @@ export default function Dienstplan({ data, actions, user, t }) {
   }
 
   function goToday() {
-    setBaseDate(new Date());
+    const today = new Date();
+    setBaseDate(today);
+    setSelectedDate(today.toISOString().slice(0, 10));
+    setForm((current) => ({ ...current, date: today.toISOString().slice(0, 10) }));
+  }
+
+  function selectDay(day) {
+    setSelectedDate(day.iso);
+    setForm((current) => ({ ...current, date: day.iso }));
   }
 
   function publish() {
@@ -257,7 +270,7 @@ export default function Dienstplan({ data, actions, user, t }) {
         <div className="section-heading">
           <div>
             <p className="eyebrow">{t('schedule.dragHint')}</p>
-            <h2>{view === 'week' ? t('schedule.weekView') : t('schedule.monthView')} · {formatPeriod(days)}</h2>
+            <h2>{view === 'week' ? t('schedule.weekView') : view === 'month' ? t('schedule.monthView') : t('schedule.listView')} · {formatPeriod(days)}</h2>
           </div>
           <div className="button-row">
             <button className="secondary-button small-button" onClick={() => moveCalendar(-1)}>
@@ -275,32 +288,48 @@ export default function Dienstplan({ data, actions, user, t }) {
             <button className={view === 'month' ? 'active small-button' : 'secondary-button small-button'} onClick={() => setView('month')}>
               {t('common.month')}
             </button>
+            <button className={view === 'list' ? 'active small-button' : 'secondary-button small-button'} onClick={() => setView('list')}>
+              {t('schedule.listView')}
+            </button>
             <button className="accent-button small-button" onClick={publish}>
               {t('common.publish')}
             </button>
           </div>
         </div>
 
-        <div className={view === 'week' ? 'calendar-grid week' : 'calendar-grid month'}>
-          {days.map((day) => (
-            <div
-              className={day.isWeekend || isHoliday(data.company.country, day.date, data.company.region) ? 'calendar-day special-day' : 'calendar-day'}
-              key={day.iso}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => onDrop(day.iso, event)}
-            >
-              <div className="day-header">
-                <strong>{day.label}</strong>
-                {(day.isWeekend || isHoliday(data.company.country, day.date, data.company.region)) && <span>{t('legal.holidayPremium')}</span>}
-              </div>
-              {data.shifts
-                .filter((shift) => shift.date === day.iso)
-                .map((shift) => (
-                  <ShiftCard key={shift.id} shift={shift} data={data} t={t} onEdit={editShift} onDelete={deleteShift} />
-                ))}
-            </div>
-          ))}
-        </div>
+        {view === 'list' ? (
+          <div className="calendar-list-view">
+            {visibleShifts.length === 0 && <div className="empty-state">{t('schedule.noShiftsInPeriod')}</div>}
+            {visibleShifts.map((shift) => (
+              <ShiftCard key={shift.id} shift={shift} data={data} t={t} onEdit={editShift} onDelete={deleteShift} />
+            ))}
+          </div>
+        ) : (
+          <div className={view === 'week' ? 'calendar-grid week' : 'calendar-grid month'}>
+            {days.map((day) => {
+              const isSpecial = day.isWeekend || isHoliday(data.company.country, day.date, data.company.region);
+              return (
+                <div
+                  className={`${isSpecial ? 'calendar-day special-day' : 'calendar-day'} ${selectedDate === day.iso ? 'selected-day' : ''}`}
+                  key={day.iso}
+                  onClick={() => selectDay(day)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => onDrop(day.iso, event)}
+                >
+                  <div className="day-header">
+                    <strong>{day.label}</strong>
+                    {isSpecial && <span>{t('legal.holidayPremium')}</span>}
+                  </div>
+                  {data.shifts
+                    .filter((shift) => shift.date === day.iso)
+                    .map((shift) => (
+                      <ShiftCard key={shift.id} shift={shift} data={data} t={t} onEdit={editShift} onDelete={deleteShift} />
+                    ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

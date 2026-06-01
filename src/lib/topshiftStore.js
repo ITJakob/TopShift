@@ -251,7 +251,9 @@ export async function addSwapRequestRemote(companyId, request) {
       company_id: companyId,
       requester_id: request.requesterId,
       own_shift_id: request.ownShiftId,
-      target_shift_id: request.targetShiftId,
+      target_shift_id: request.targetShiftId || null,
+      target_employee_id: request.targetEmployeeId || null,
+      peer_status: request.peerStatus || 'pending',
       status: 'pending',
       message: request.message || '',
     }),
@@ -262,6 +264,9 @@ export async function updateSwapRequestRemote(companyId, requestId, patch) {
   const payload = {};
   if (patch.status) {
     payload.status = patch.status;
+  }
+  if (patch.peerStatus) {
+    payload.peer_status = patch.peerStatus;
   }
   if (patch.reason) {
     payload.reason = patch.reason;
@@ -464,7 +469,9 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       id: request.id,
       requesterId: request.requester_id,
       ownShiftId: request.own_shift_id,
-      targetShiftId: request.target_shift_id,
+      targetShiftId: request.target_shift_id || '',
+      targetEmployeeId: request.target_employee_id || '',
+      peerStatus: request.peer_status || 'pending',
       status: request.status,
       message: request.message,
       reason: request.reason,

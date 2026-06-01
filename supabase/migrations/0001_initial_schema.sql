@@ -168,7 +168,9 @@ create table public.swap_requests (
   company_id uuid not null references public.companies(id) on delete cascade,
   requester_id uuid not null references public.employees(id) on delete cascade,
   own_shift_id uuid not null references public.shifts(id) on delete cascade,
-  target_shift_id uuid not null references public.shifts(id) on delete cascade,
+  target_shift_id uuid references public.shifts(id) on delete cascade,
+  target_employee_id uuid references public.employees(id) on delete cascade,
+  peer_status public.request_status not null default 'pending',
   status public.swap_status not null default 'pending',
   message text not null default '',
   reason text not null default '',
@@ -543,12 +545,44 @@ create policy "members read swaps" on public.swap_requests
     public.is_company_admin(company_id)
     or exists (
       select 1 from public.employees
-      where employees.id = swap_requests.requester_id
+      where employees.id in (swap_requests.requester_id, swap_requests.target_employee_id)
+        and employees.profile_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.shifts
+      join public.employees on employees.id = shifts.employee_id
+      where shifts.id = swap_requests.target_shift_id
         and employees.profile_id = auth.uid()
     )
   );
 create policy "members create swaps" on public.swap_requests
   for insert with check (public.is_company_member(company_id));
+create policy "target employees update peer swap status" on public.swap_requests
+  for update using (
+    exists (
+      select 1 from public.employees
+      where employees.id = swap_requests.target_employee_id
+        and employees.profile_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.shifts
+      join public.employees on employees.id = shifts.employee_id
+      where shifts.id = swap_requests.target_shift_id
+        and employees.profile_id = auth.uid()
+    )
+  ) with check (
+    exists (
+      select 1 from public.employees
+      where employees.id = swap_requests.target_employee_id
+        and employees.profile_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.shifts
+      join public.employees on employees.id = shifts.employee_id
+      where shifts.id = swap_requests.target_shift_id
+        and employees.profile_id = auth.uid()
+    )
+  );
 create policy "admins update swaps" on public.swap_requests
   for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 

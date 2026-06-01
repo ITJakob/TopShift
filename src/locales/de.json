@@ -284,5 +284,18 @@
   "delay.report": "Verspätung melden",
   "delay.reported": "Gemeldet",
   "delay.empty": "Keine Verspätungen gemeldet.",
-  "invite": "Einladung"
+  "invite": "Einladung",
+  "schedule.listView": "Listenansicht",
+  "schedule.noShiftsInPeriod": "Keine Schichten in diesem Zeitraum.",
+  "swaps.myCalendar": "Mein Kalender",
+  "swaps.pickOwnShift": "Wähle links den Dienst, den du abgeben oder tauschen möchtest.",
+  "swaps.availablePeople": "Passende Kolleg:innen",
+  "swaps.availablePeopleHint": "Nur freie oder gesetzlich passende Optionen werden angezeigt. Die Anfrage geht direkt an die Person.",
+  "swaps.freeOnDay": "An diesem Tag frei",
+  "swaps.incoming": "Eingehende Tauschanfragen",
+  "swaps.noIncoming": "Keine eingehenden Tauschanfragen.",
+  "swaps.noOutgoing": "Noch keine ausgehenden Tauschanfragen.",
+  "swaps.peerStatus": "Zustimmung Kolleg:in",
+  "swaps.peerApprove": "Übernehmen / zustimmen",
+  "swaps.peerReject": "Ablehnen"
 }
