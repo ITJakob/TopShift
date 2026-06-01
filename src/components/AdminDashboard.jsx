@@ -190,6 +190,7 @@ function Notifications({ data, t }) {
       <div className="card">
         <h2>{t('common.lastSaved')}</h2>
         <div className="list">
+          {data.notifications.length === 0 && <div className="empty-state">{t('notifications.empty')}</div>}
           {data.notifications.map((notification) => (
             <article className="list-item" key={notification.id}>
               <div>

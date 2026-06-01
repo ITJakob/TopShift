@@ -184,12 +184,43 @@ begin
 end;
 $$;
 
+
+create or replace function public.enforce_employee_plan_limit()
+returns trigger
+language plpgsql
+as $$
+declare
+  current_plan public.company_plan;
+  employee_count int;
+  employee_limit int;
+begin
+  select plan into current_plan from public.companies where id = new.company_id;
+  select count(*) into employee_count from public.employees where company_id = new.company_id;
+
+  employee_limit := case current_plan
+    when 'free' then 5
+    when 'small' then 20
+    when 'business' then 60
+    else null
+  end;
+
+  if employee_limit is not null and employee_count >= employee_limit then
+    raise exception 'TopShift plan % allows a maximum of % employees', current_plan, employee_limit;
+  end if;
+
+  return new;
+end;
+$$;
+
+
 create trigger profiles_updated_at before update on public.profiles
   for each row execute function public.touch_updated_at();
 create trigger companies_updated_at before update on public.companies
   for each row execute function public.touch_updated_at();
 create trigger employees_updated_at before update on public.employees
   for each row execute function public.touch_updated_at();
+create trigger employees_plan_limit before insert on public.employees
+  for each row execute function public.enforce_employee_plan_limit();
 create trigger shifts_updated_at before update on public.shifts
   for each row execute function public.touch_updated_at();
 create trigger swap_requests_updated_at before update on public.swap_requests
@@ -293,19 +324,36 @@ create policy "admins manage templates" on public.shift_templates
   for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 
 create policy "members read relevant shifts" on public.shifts
-  for select using (public.is_company_member(company_id));
+  for select using (
+    public.is_company_admin(company_id)
+    or (public.is_company_member(company_id) and status = 'published')
+  );
 create policy "admins manage shifts" on public.shifts
   for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 
 create policy "members insert sick reports" on public.sick_reports
   for insert with check (public.is_company_member(company_id));
 create policy "members read sick reports" on public.sick_reports
-  for select using (public.is_company_member(company_id));
+  for select using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = sick_reports.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
 create policy "admins manage sick reports" on public.sick_reports
   for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 
 create policy "members read swaps" on public.swap_requests
-  for select using (public.is_company_member(company_id));
+  for select using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = swap_requests.requester_id
+        and employees.profile_id = auth.uid()
+    )
+  );
 create policy "members create swaps" on public.swap_requests
   for insert with check (public.is_company_member(company_id));
 create policy "admins update swaps" on public.swap_requests

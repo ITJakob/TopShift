@@ -194,5 +194,15 @@
   "sync.local": "Local demo mode active.",
   "sync.loading": "Loading Supabase data...",
   "sync.remote": "Supabase sync active.",
-  "sync.error": "Supabase sync unavailable, local fallback active"
+  "sync.error": "Supabase sync unavailable, local fallback active",
+  "common.previous": "Previous",
+  "common.nextPeriod": "Next",
+  "schedule.editShift": "Edit shift",
+  "schedule.updateShift": "Update shift",
+  "schedule.deleted": "Shift deleted.",
+  "auth.checkEmail": "Please check your email inbox and confirm the link before signing in.",
+  "auth.sessionRestored": "Existing session restored.",
+  "employee.noUpcomingShifts": "No upcoming published shifts.",
+  "employee.noPastShifts": "No past shifts yet.",
+  "notifications.empty": "No notifications yet."
 }

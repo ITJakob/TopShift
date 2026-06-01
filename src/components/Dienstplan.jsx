@@ -29,6 +29,8 @@ const emptyShift = {
 
 export default function Dienstplan({ data, actions, user, t }) {
   const [view, setView] = useState('week');
+  const [baseDate, setBaseDate] = useState(new Date());
+  const [editingShiftId, setEditingShiftId] = useState('');
   const [form, setForm] = useState({ ...emptyShift, location: data.company.locations[0] || '' });
   const [overrideReason, setOverrideReason] = useState('');
   const [message, setMessage] = useState('');
@@ -47,7 +49,7 @@ export default function Dienstplan({ data, actions, user, t }) {
     [data.company, data.shifts, form, selectedEmployee],
   );
 
-  const days = useMemo(() => buildDays(view), [view]);
+  const days = useMemo(() => buildDays(view, baseDate), [view, baseDate]);
 
   function updateForm(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -72,7 +74,40 @@ export default function Dienstplan({ data, actions, user, t }) {
     });
     setMessage(hasOverride ? t('legal.shiftSavedWithOverride') : t('schedule.saved'));
     setOverrideReason('');
+    resetForm();
+  }
+
+  function resetForm() {
+    setEditingShiftId('');
+    setOverrideReason('');
     setForm({ ...emptyShift, location: data.company.locations[0] || '' });
+  }
+
+  function editShift(shift) {
+    setEditingShiftId(shift.id);
+    setOverrideReason('');
+    setMessage('');
+    setForm({ ...shift, location: shift.location || data.company.locations[0] || '' });
+  }
+
+  function deleteShift(shift) {
+    actions.deleteShift(shift.id);
+    if (editingShiftId === shift.id) {
+      resetForm();
+    }
+    setMessage(t('schedule.deleted'));
+  }
+
+  function moveCalendar(direction) {
+    setBaseDate((current) => {
+      const next = new Date(current);
+      next.setDate(next.getDate() + direction * (view === 'week' ? 7 : 31));
+      return next;
+    });
+  }
+
+  function goToday() {
+    setBaseDate(new Date());
   }
 
   function publish() {
@@ -118,9 +153,9 @@ export default function Dienstplan({ data, actions, user, t }) {
         <div className="section-heading">
           <div>
             <p className="eyebrow">{t('legal.title')}</p>
-            <h2>{t('schedule.createShift')}</h2>
+            <h2>{editingShiftId ? t('schedule.editShift') : t('schedule.createShift')}</h2>
           </div>
-          <span className="status draft">{t('common.draft')}</span>
+          <span className="status draft">{editingShiftId ? t('common.edit') : t('common.draft')}</span>
         </div>
 
         {message && <div className={message.includes(t('schedule.blocked')) ? 'error-banner' : 'info-banner'}>{message}</div>}
@@ -193,10 +228,15 @@ export default function Dienstplan({ data, actions, user, t }) {
         )}
 
         <div className="button-row">
-          <button onClick={saveShift}>{t('common.save')}</button>
+          <button onClick={saveShift}>{editingShiftId ? t('schedule.updateShift') : t('common.save')}</button>
           <button className="secondary-button" onClick={saveTemplate}>
             {t('schedule.saveTemplate')}
           </button>
+          {editingShiftId && (
+            <button className="secondary-button" onClick={resetForm}>
+              {t('common.cancel')}
+            </button>
+          )}
         </div>
 
         <div className="template-list">
@@ -217,9 +257,18 @@ export default function Dienstplan({ data, actions, user, t }) {
         <div className="section-heading">
           <div>
             <p className="eyebrow">{t('schedule.dragHint')}</p>
-            <h2>{view === 'week' ? t('schedule.weekView') : t('schedule.monthView')}</h2>
+            <h2>{view === 'week' ? t('schedule.weekView') : t('schedule.monthView')} · {formatPeriod(days)}</h2>
           </div>
           <div className="button-row">
+            <button className="secondary-button small-button" onClick={() => moveCalendar(-1)}>
+              {t('common.previous')}
+            </button>
+            <button className="secondary-button small-button" onClick={goToday}>
+              {t('common.today')}
+            </button>
+            <button className="secondary-button small-button" onClick={() => moveCalendar(1)}>
+              {t('common.nextPeriod')}
+            </button>
             <button className={view === 'week' ? 'active small-button' : 'secondary-button small-button'} onClick={() => setView('week')}>
               {t('common.week')}
             </button>
@@ -247,7 +296,7 @@ export default function Dienstplan({ data, actions, user, t }) {
               {data.shifts
                 .filter((shift) => shift.date === day.iso)
                 .map((shift) => (
-                  <ShiftCard key={shift.id} shift={shift} data={data} t={t} />
+                  <ShiftCard key={shift.id} shift={shift} data={data} t={t} onEdit={editShift} onDelete={deleteShift} />
                 ))}
             </div>
           ))}
@@ -284,7 +333,7 @@ function ValidationPanel({ validation, t, overrideReason, onOverride }) {
   );
 }
 
-function ShiftCard({ shift, data, t }) {
+function ShiftCard({ shift, data, t, onEdit, onDelete }) {
   const employee = data.employees.find((item) => item.id === shift.employeeId);
   return (
     <article className="shift-card" draggable onDragStart={(event) => event.dataTransfer.setData('text/plain', shift.id)}>
@@ -297,12 +346,20 @@ function ShiftCard({ shift, data, t }) {
       <span className={`status ${shift.status}`}>{t(`common.${shift.status}`)}</span>
       <small>{t(shiftTypeKeys[shift.type])}</small>
       {shift.overrideLog && <small className="danger-text">{t('legal.overrideLogged')}</small>}
+      <div className="shift-actions">
+        <button className="secondary-button tiny-button" onClick={() => onEdit(shift)}>
+          {t('common.edit')}
+        </button>
+        <button className="danger-button tiny-button" onClick={() => onDelete(shift)}>
+          {t('common.delete')}
+        </button>
+      </div>
     </article>
   );
 }
 
-function buildDays(view) {
-  const today = new Date();
+function buildDays(view, baseDate) {
+  const today = new Date(baseDate);
   const start = new Date(today);
   if (view === 'week') {
     const diff = today.getDay() === 0 ? -6 : 1 - today.getDay();
@@ -323,6 +380,15 @@ function buildDays(view) {
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
     };
   });
+}
+
+function formatPeriod(days) {
+  if (!days.length) {
+    return '';
+  }
+  const first = days[0].date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+  const last = days[days.length - 1].date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+  return `${first}-${last}`;
 }
 
 function formatIssue(issue, t) {

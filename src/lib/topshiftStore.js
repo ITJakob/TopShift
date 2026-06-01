@@ -111,6 +111,10 @@ export async function saveShiftRemote(company, shift, actorId) {
   );
 }
 
+export async function deleteShiftRemote(companyId, shiftId) {
+  await throwOnError(supabase.from('shifts').delete().eq('company_id', companyId).eq('id', shiftId));
+}
+
 export async function publishScheduleRemote(companyId) {
   await throwOnError(
     supabase.from('shifts').update({ status: 'published' }).eq('company_id', companyId).eq('status', 'draft'),

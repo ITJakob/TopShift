@@ -194,5 +194,15 @@
   "sync.local": "Lokaler Demo-Modus aktiv.",
   "sync.loading": "Supabase-Daten werden geladen...",
   "sync.remote": "Supabase-Synchronisierung aktiv.",
-  "sync.error": "Supabase-Synchronisierung nicht verfügbar, lokaler Fallback aktiv"
+  "sync.error": "Supabase-Synchronisierung nicht verfügbar, lokaler Fallback aktiv",
+  "common.previous": "Zurück",
+  "common.nextPeriod": "Weiter",
+  "schedule.editShift": "Schicht bearbeiten",
+  "schedule.updateShift": "Schicht aktualisieren",
+  "schedule.deleted": "Schicht gelöscht.",
+  "auth.checkEmail": "Bitte prüfe dein E-Mail-Postfach und bestätige den Link, bevor du dich einloggst.",
+  "auth.sessionRestored": "Bestehende Sitzung wiederhergestellt.",
+  "employee.noUpcomingShifts": "Keine kommenden Schichten veröffentlicht.",
+  "employee.noPastShifts": "Noch keine vergangenen Schichten.",
+  "notifications.empty": "Noch keine Benachrichtigungen."
 }

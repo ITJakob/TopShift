@@ -27,4 +27,5 @@ npm run build
 
 Die App nutzt Supabase, sobald `VITE_SUPABASE_ANON_KEY` gesetzt ist und ein echter Login verwendet wird. Demo-Logins bleiben lokal und speichern im Browser.
 Wichtig fuer Vercel: `VITE_SUPABASE_ANON_KEY` muss im richtigen Scope (Production/Preview) gesetzt sein und danach muss ein neues Deployment gestartet werden, weil Vite die Variable beim Build in das Frontend einbettet.
+- Live-Checkliste: `docs/live-readiness-checklist.md`
 

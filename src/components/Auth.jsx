@@ -27,6 +27,11 @@ export default function Auth({ t, onAuthenticated }) {
       return;
     }
 
+    if (mode === 'signup' && !data.session) {
+      setError(t('auth.checkEmail'));
+      return;
+    }
+
     onAuthenticated({
       id: data.user?.id || email,
       email,
@@ -61,7 +66,7 @@ export default function Auth({ t, onAuthenticated }) {
         </label>
         <label>
           {t('auth.password')}
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
+          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength="6" />
         </label>
 
         <div className="button-row">

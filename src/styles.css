@@ -198,6 +198,12 @@ th {
   padding: 0.58rem 0.75rem;
 }
 
+.tiny-button {
+  border-radius: 0.65rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 .auth-layout,
 .dashboard {
   width: min(1480px, calc(100% - 2rem));
@@ -467,6 +473,12 @@ th {
   gap: 0.45rem;
   margin-bottom: 0.6rem;
   padding: 0.7rem;
+}
+
+.shift-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
 }
 
 .employee-list,

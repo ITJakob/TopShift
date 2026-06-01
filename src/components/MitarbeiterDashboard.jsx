@@ -105,6 +105,7 @@ function MySchedule({ shifts, t }) {
       <div className="card">
         <h2>{t('employee.mySchedule')}</h2>
         <div className="list">
+          {upcoming.length === 0 && <div className="empty-state">{t('employee.noUpcomingShifts')}</div>}
           {upcoming.map((shift) => (
             <ShiftLine key={shift.id} shift={shift} />
           ))}
@@ -113,6 +114,7 @@ function MySchedule({ shifts, t }) {
       <div className="card">
         <h2>{t('employee.pastShifts')}</h2>
         <div className="list">
+          {past.length === 0 && <div className="empty-state">{t('employee.noPastShifts')}</div>}
           {past.map((shift) => (
             <ShiftLine key={shift.id} shift={shift} />
           ))}

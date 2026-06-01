@@ -11,6 +11,7 @@ import {
   addSwapRequestRemote,
   addTemplateRemote,
   createNotificationRemote,
+  deleteShiftRemote,
   loadRemoteWorkspace,
   publishScheduleRemote,
   saveAllowanceRemote,
@@ -150,6 +151,48 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState({ mode: 'local', message: 'sync.local' });
 
   useEffect(() => {
+    let active = true;
+
+    async function restoreSession() {
+      if (!supabase) {
+        return;
+      }
+      const { data } = await supabase.auth.getSession();
+      const sessionUser = data?.session?.user;
+      if (!active || !sessionUser) {
+        return;
+      }
+      setUser({
+        id: sessionUser.id,
+        email: sessionUser.email,
+        name: sessionUser.user_metadata?.full_name || sessionUser.email,
+        role: 'admin',
+        isDemo: false,
+      });
+    }
+
+    restoreSession();
+
+    const { data: listener } = supabase?.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        return;
+      }
+      setUser({
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.user_metadata?.full_name || session.user.email,
+        role: 'admin',
+        isDemo: false,
+      });
+    }) || { data: null };
+
+    return () => {
+      active = false;
+      listener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     document.documentElement.lang = language;
     localStorage.setItem('topshift-language', language);
   }, [language]);
@@ -256,6 +299,31 @@ export default function App() {
             await saveShiftRemote(current.company, normalized, user.id);
             await createNotificationRemote(current.company.id, 'shift', notification.textKey);
           });
+          return next;
+        }),
+      deleteShift: (shiftId) =>
+        setState((current) => {
+          const removed = current.shifts.find((shift) => shift.id === shiftId);
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'shift',
+            textKey: 'notifications.shiftChanged',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            shifts: current.shifts.filter((shift) => shift.id !== shiftId),
+            swapRequests: current.swapRequests.filter(
+              (request) => request.ownShiftId !== shiftId && request.targetShiftId !== shiftId,
+            ),
+            notifications: removed ? [notification, ...current.notifications] : current.notifications,
+          };
+          if (removed) {
+            runRemote(async () => {
+              await deleteShiftRemote(current.company.id, shiftId);
+              await createNotificationRemote(current.company.id, 'shift', notification.textKey);
+            });
+          }
           return next;
         }),
       publishSchedule: () =>
