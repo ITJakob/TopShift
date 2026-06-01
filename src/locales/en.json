@@ -240,5 +240,12 @@
   "region.ch-be": "Bern",
   "region.ch-bs": "Basel-Stadt",
   "region.ch-ge": "Geneva",
-  "region.ch-ti": "Ticino"
+  "region.ch-ti": "Ticino",
+  "auth.demoHiddenHint": "Demo access is available on a separate admin page for internal testing.",
+  "demo.hiddenEyebrow": "Hidden demo access",
+  "demo.title": "Start TopShift demo",
+  "demo.subtitle": "Internal demo mode without Supabase writes. Ideal for presentations, tests, and quick product checks.",
+  "demo.loginTitle": "Demo login",
+  "demo.localOnly": "Demo mode uses local sample data and does not change production Supabase data.",
+  "demo.backToLogin": "Back to regular sign-in"
 }

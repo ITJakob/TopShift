@@ -78,39 +78,7 @@ export default function Auth({ t, onAuthenticated }) {
           </button>
         </div>
 
-        <div className="divider" />
-
-        <div className="button-row stacked-mobile">
-          <button
-            className="accent-button"
-            onClick={() =>
-              onAuthenticated({
-                id: 'demo-admin',
-                email: 'admin@topshift.local',
-                name: 'Demo Admin',
-                role: 'admin',
-                isDemo: true,
-              })
-            }
-          >
-            {t('auth.demoAdmin')}
-          </button>
-          <button
-            className="secondary-button"
-            onClick={() =>
-              onAuthenticated({
-                id: 'emp-1',
-                email: 'anna.berger@example.com',
-                name: 'Anna Berger',
-                role: 'employee',
-                employeeId: 'emp-1',
-                isDemo: true,
-              })
-            }
-          >
-            {t('auth.demoEmployee')}
-          </button>
-        </div>
+        <p className="auth-footnote">{t('auth.demoHiddenHint')}</p>
       </section>
     </main>
   );

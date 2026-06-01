@@ -240,5 +240,12 @@
   "region.ch-be": "Bern",
   "region.ch-bs": "Basel-Stadt",
   "region.ch-ge": "Genf",
-  "region.ch-ti": "Tessin"
+  "region.ch-ti": "Tessin",
+  "auth.demoHiddenHint": "Demo-Zugang ist für interne Tests auf einer separaten Admin-Seite verfügbar.",
+  "demo.hiddenEyebrow": "Versteckter Demo-Zugang",
+  "demo.title": "TopShift Demo starten",
+  "demo.subtitle": "Interner Demo-Modus ohne Supabase-Schreibzugriff. Ideal für Präsentationen, Tests und schnelle Produktchecks.",
+  "demo.loginTitle": "Demo Login",
+  "demo.localOnly": "Der Demo-Modus nutzt lokale Beispieldaten und verändert keine produktiven Supabase-Daten.",
+  "demo.backToLogin": "Zur normalen Anmeldung"
 }
