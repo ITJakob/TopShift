@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Schichttausch from './Schichttausch.jsx';
 import Stundenübersicht from './Stundenübersicht.jsx';
+import Abwesenheiten from './Abwesenheiten.jsx';
 import { getShiftHours } from '../lib/gesetzePruefung.js';
 
 export default function MitarbeiterDashboard({ data, actions, user, t }) {
@@ -15,6 +16,7 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
     preferences: employee.preferences || '',
   });
   const [sickDuration, setSickDuration] = useState('');
+  const [delay, setDelay] = useState({ delayMinutes: 15, message: '', shiftId: '' });
 
   const myShifts = data.shifts
     .filter((shift) => shift.employeeId === employee.id && shift.status === 'published')
@@ -32,6 +34,16 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
       duration: sickDuration,
     });
     setSickDuration('');
+  }
+
+  function reportDelay() {
+    actions.addDelayReport({
+      employeeId: employee.id,
+      shiftId: delay.shiftId || nextShift?.id || '',
+      delayMinutes: Number(delay.delayMinutes),
+      message: delay.message,
+    });
+    setDelay({ delayMinutes: 15, message: '', shiftId: '' });
   }
 
   return (
@@ -52,8 +64,14 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
         <button className={activeTab === 'preferences' ? 'active' : ''} onClick={() => setActiveTab('preferences')}>
           {t('employee.preferences')}
         </button>
+        <button className={activeTab === 'absence' ? 'active' : ''} onClick={() => setActiveTab('absence')}>
+          {t('absence.title')}
+        </button>
         <button className={activeTab === 'sick' ? 'active' : ''} onClick={() => setActiveTab('sick')}>
           {t('employee.sickToday')}
+        </button>
+        <button className={activeTab === 'delay' ? 'active' : ''} onClick={() => setActiveTab('delay')}>
+          {t('delay.title')}
         </button>
         <button className={activeTab === 'swaps' ? 'active' : ''} onClick={() => setActiveTab('swaps')}>
           {t('swaps.myTitle')}
@@ -67,8 +85,14 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
       {activeTab === 'preferences' && (
         <PreferencesForm preferences={preferences} setPreferences={setPreferences} onSave={savePreferences} t={t} />
       )}
+      {activeTab === 'absence' && (
+        <Abwesenheiten data={data} actions={actions} employeeId={employee.id} mode="employee" t={t} />
+      )}
       {activeTab === 'sick' && (
         <SickForm duration={sickDuration} setDuration={setSickDuration} onReport={reportSick} t={t} />
+      )}
+      {activeTab === 'delay' && (
+        <DelayForm delay={delay} setDelay={setDelay} shifts={myShifts} onReport={reportDelay} t={t} />
       )}
       {activeTab === 'swaps' && (
         <Schichttausch data={data} actions={actions} mode="employee" employeeId={employee.id} t={t} />
@@ -168,6 +192,41 @@ function PreferencesForm({ preferences, setPreferences, onSave, t }) {
         <textarea value={preferences.otherNotes} onChange={(event) => update('otherNotes', event.target.value)} />
       </label>
       <button onClick={onSave}>{t('common.save')}</button>
+    </section>
+  );
+}
+
+
+function DelayForm({ delay, setDelay, shifts, onReport, t }) {
+  return (
+    <section className="card form-card narrow">
+      <h2>{t('delay.title')}</h2>
+      <p className="muted">{t('delay.hint')}</p>
+      <label>
+        {t('common.shift')}
+        <select value={delay.shiftId} onChange={(event) => setDelay({ ...delay, shiftId: event.target.value })}>
+          <option value="">{t('common.next')}</option>
+          {shifts.map((shift) => (
+            <option key={shift.id} value={shift.id}>
+              {shift.date} {shift.start}-{shift.end}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {t('delay.minutes')}
+        <input
+          value={delay.delayMinutes}
+          onChange={(event) => setDelay({ ...delay, delayMinutes: Number(event.target.value) })}
+          type="number"
+          min="1"
+        />
+      </label>
+      <label>
+        {t('common.message')}
+        <textarea value={delay.message} onChange={(event) => setDelay({ ...delay, message: event.target.value })} />
+      </label>
+      <button className="warning-button" onClick={onReport}>{t('delay.report')}</button>
     </section>
   );
 }

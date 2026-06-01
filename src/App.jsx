@@ -4,10 +4,14 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import MitarbeiterDashboard from './components/MitarbeiterDashboard.jsx';
 import OnboardingWizard from './components/OnboardingWizard.jsx';
 import DemoAdminLogin from './components/DemoAdminLogin.jsx';
+import InviteAccept from './components/InviteAccept.jsx';
 import de from './locales/de.json';
 import en from './locales/en.json';
 import { supabase } from './lib/supabase.js';
 import {
+  acceptInvitationRemote,
+  addAbsenceRequestRemote,
+  addDelayReportRemote,
   addEmployeeRemote,
   addSickReportRemote,
   addSwapRequestRemote,
@@ -20,6 +24,7 @@ import {
   saveCompanyRemote,
   saveShiftRemote,
   shouldUseRemote,
+  updateAbsenceRequestRemote,
   updateEmployeeRemote,
   updateSwapRequestRemote,
 } from './lib/topshiftStore.js';
@@ -114,6 +119,8 @@ const defaultState = {
   employees: defaultEmployees,
   shifts: defaultShifts,
   sickReports: [],
+  absenceRequests: [],
+  delayReports: [],
   swapRequests: [],
   allowances: {},
   notifications: [],
@@ -149,8 +156,18 @@ function interpolate(template, params, translate) {
   });
 }
 
+function getInviteToken() {
+  const inviteMatch = window.location.pathname.match(/^\/invite\/([^/]+)$/);
+  if (inviteMatch) {
+    return inviteMatch[1];
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get('invite');
+}
+
 export default function App() {
   const isDemoAdminPage = window.location.pathname === '/demo-admin' || window.location.hash === '#demo-admin';
+  const inviteToken = getInviteToken();
   const [language, setLanguage] = useState(() => localStorage.getItem('topshift-language') || 'de');
   const [user, setUser] = useState(null);
   const [state, setState] = useState(loadState);
@@ -268,8 +285,22 @@ export default function App() {
         }),
       addEmployee: (employee) =>
         setState((current) => {
-          const created = { ...employee, id: crypto.randomUUID() };
-          const next = { ...current, employees: [...current.employees, created] };
+          const created = { ...employee, id: crypto.randomUUID(), inviteToken: crypto.randomUUID() };
+          const invitation = {
+            id: crypto.randomUUID(),
+            employeeId: created.id,
+            email: created.email,
+            role: created.role,
+            token: created.inviteToken,
+            status: 'pending',
+            expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            employees: [...current.employees, created],
+            invitations: [invitation, ...current.invitations],
+          };
           runRemote(() => addEmployeeRemote(current.company.id, created));
           return next;
         }),
@@ -391,6 +422,67 @@ export default function App() {
           });
           return next;
         }),
+      addAbsenceRequest: (request) =>
+        setState((current) => {
+          const created = {
+            ...request,
+            id: crypto.randomUUID(),
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+          };
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'shift',
+            textKey: 'notifications.absence',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            absenceRequests: [created, ...current.absenceRequests],
+            notifications: [notification, ...current.notifications],
+          };
+          runRemote(async () => {
+            await addAbsenceRequestRemote(current.company.id, created);
+            await createNotificationRemote(current.company.id, 'shift', notification.textKey);
+          });
+          return next;
+        }),
+      updateAbsenceRequest: (requestId, patch) =>
+        setState((current) => {
+          const next = {
+            ...current,
+            absenceRequests: current.absenceRequests.map((request) =>
+              request.id === requestId ? { ...request, ...patch } : request,
+            ),
+          };
+          runRemote(() => updateAbsenceRequestRemote(current.company.id, requestId, patch));
+          return next;
+        }),
+      addDelayReport: (report) =>
+        setState((current) => {
+          const created = {
+            ...report,
+            id: crypto.randomUUID(),
+            date: report.date || new Date().toISOString().slice(0, 10),
+            createdAt: new Date().toISOString(),
+          };
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'shift',
+            textKey: 'notifications.delay',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            delayReports: [created, ...current.delayReports],
+            notifications: [notification, ...current.notifications],
+          };
+          runRemote(async () => {
+            await addDelayReportRemote(current.company.id, created);
+            await createNotificationRemote(current.company.id, 'shift', notification.textKey);
+          });
+          return next;
+        }),
       addSwapRequest: (request) =>
         setState((current) => {
           const created = {
@@ -440,6 +532,27 @@ export default function App() {
     [user],
   );
 
+  async function acceptInviteSession(token) {
+    await acceptInvitationRemote(token);
+    const { data } = await supabase.auth.getSession();
+    const sessionUser = data?.session?.user;
+    const activeUser = user || (sessionUser
+      ? {
+          id: sessionUser.id,
+          email: sessionUser.email,
+          name: sessionUser.user_metadata?.full_name || sessionUser.email,
+          role: 'employee',
+          isDemo: false,
+        }
+      : null);
+
+    if (activeUser) {
+      const result = await loadRemoteWorkspace(activeUser, defaultState, language);
+      setState(result.state);
+      setUser({ ...activeUser, ...result.userPatch });
+    }
+  }
+
   async function logout() {
     if (shouldUseRemote(user)) {
       await supabase.auth.signOut();
@@ -480,7 +593,16 @@ export default function App() {
         </div>
       )}
 
-      {!user ? (
+      {inviteToken ? (
+        <InviteAccept
+          token={inviteToken}
+          user={user}
+          localInvitations={state.invitations}
+          t={t}
+          onAuthenticated={setUser}
+          onAccepted={acceptInviteSession}
+        />
+      ) : !user ? (
         isDemoAdminPage ? (
           <DemoAdminLogin t={t} onAuthenticated={setUser} />
         ) : (

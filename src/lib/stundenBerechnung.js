@@ -40,6 +40,7 @@ export function calculateMonthlyHours({
   shifts = [],
   sickReports = [],
   vacationDays = [],
+  absenceRequests = [],
   allowances = {},
   country = 'at',
   region = '',
@@ -70,9 +71,19 @@ export function calculateMonthlyHours({
     const sickDays = sickReports.filter(
       (report) => report.employeeId === employee.id && report.date.startsWith(month),
     ).length;
+    const approvedVacationDays = absenceRequests
+      .filter(
+        (request) =>
+          request.employeeId === employee.id
+          && request.status === 'approved'
+          && request.type === 'vacation'
+          && request.startDate.slice(0, 7) <= month
+          && request.endDate.slice(0, 7) >= month,
+      )
+      .reduce((sum, request) => sum + countMonthDaysInRange(request.startDate, request.endDate, month), 0);
     const employeeVacationDays = vacationDays.filter(
       (entry) => entry.employeeId === employee.id && entry.date.startsWith(month),
-    ).length;
+    ).length + approvedVacationDays;
     const target = Number(employee.weeklyTarget || 0) * 4.33;
 
     return {
@@ -130,6 +141,20 @@ export function downloadTextFile(filename, content, mime = 'text/plain') {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function countMonthDaysInRange(startDate, endDate, month) {
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  let count = 0;
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    if (`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}` === month) {
+      count += 1;
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return count;
 }
 
 function round(value) {

@@ -30,6 +30,14 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
     setForm(emptyEmployee);
   }
 
+  function inviteUrl(invitation) {
+    return `${window.location.origin}/invite/${invitation.token}`;
+  }
+
+  async function copyInvite(invitation) {
+    await navigator.clipboard?.writeText(inviteUrl(invitation));
+  }
+
   return (
     <section className="grid two-columns">
       <div className="card form-card">
@@ -112,9 +120,24 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
                 {employee.isMinor && <span className="status pending">{t('employees.isMinor')}</span>}
               </div>
               {employee.preferences && <p className="muted">{employee.preferences}</p>}
-              <small className="muted">
-                {t('employees.inviteStatus')}: {data.invitations?.find((invite) => invite.email === employee.email)?.status || 'local'}
-              </small>
+              {(() => {
+                const invitation = data.invitations?.find((invite) => invite.email === employee.email);
+                return (
+                  <small className="muted invite-line">
+                    {t('employees.inviteStatus')}: {invitation?.status || 'local'}
+                    {invitation?.token && invitation.status === 'pending' && (
+                      <span className="invite-actions">
+                        <button className="secondary-button tiny-button" onClick={() => copyInvite(invitation)}>
+                          {t('employees.copyInvite')}
+                        </button>
+                        <a className="subtle-link" href={inviteUrl(invitation)} target="_blank" rel="noreferrer">
+                          {t('employees.openInvite')}
+                        </a>
+                      </span>
+                    )}
+                  </small>
+                );
+              })()}
             </article>
           ))}
         </div>

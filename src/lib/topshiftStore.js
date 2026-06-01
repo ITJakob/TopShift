@@ -4,6 +4,35 @@ export function shouldUseRemote(user) {
   return Boolean(supabaseConfigured && supabase && user && !user.isDemo);
 }
 
+
+export async function fetchInvitationByTokenRemote(token) {
+  if (!supabaseConfigured || !supabase || !token) {
+    return null;
+  }
+
+  const { data, error } = await supabase.rpc('get_invitation_by_token', { invite_token: token });
+  if (error) {
+    throw error;
+  }
+  const invitation = data?.[0];
+  if (!invitation) {
+    return null;
+  }
+  return {
+    id: invitation.id,
+    companyId: invitation.company_id,
+    companyName: invitation.company_name,
+    email: invitation.email,
+    role: invitation.role,
+    status: invitation.status,
+    expiresAt: invitation.expires_at,
+  };
+}
+
+export async function acceptInvitationRemote(token) {
+  await throwOnError(supabase.rpc('accept_invitation', { invite_token: token }));
+}
+
 export async function loadRemoteWorkspace(user, fallbackState, language = 'de') {
   if (!shouldUseRemote(user)) {
     return { state: fallbackState, userPatch: {} };
@@ -88,6 +117,7 @@ export async function addEmployeeRemote(companyId, employee) {
         employee_id: data.id,
         email: data.email,
         role: data.role,
+        token: employee.inviteToken,
         status: 'pending',
       },
       { onConflict: 'company_id,email,status' },
@@ -169,6 +199,49 @@ export async function addSickReportRemote(companyId, report) {
       .eq('employee_id', report.employeeId)
       .gte('shift_date', reportDate)
       .eq('status', 'published'),
+  );
+}
+
+
+export async function addAbsenceRequestRemote(companyId, request) {
+  await throwOnError(
+    supabase.from('absence_requests').insert({
+      company_id: companyId,
+      employee_id: request.employeeId,
+      type: request.type,
+      start_date: request.startDate,
+      end_date: request.endDate,
+      reason: request.reason || '',
+      status: 'pending',
+    }),
+  );
+}
+
+export async function updateAbsenceRequestRemote(companyId, requestId, patch) {
+  const payload = {};
+  if (patch.status) {
+    payload.status = patch.status;
+    payload.decided_at = new Date().toISOString();
+  }
+  if (patch.adminReason) {
+    payload.admin_reason = patch.adminReason;
+  }
+
+  await throwOnError(
+    supabase.from('absence_requests').update(payload).eq('company_id', companyId).eq('id', requestId),
+  );
+}
+
+export async function addDelayReportRemote(companyId, report) {
+  await throwOnError(
+    supabase.from('delay_reports').insert({
+      company_id: companyId,
+      employee_id: report.employeeId,
+      shift_id: report.shiftId || null,
+      delay_minutes: report.delayMinutes,
+      message: report.message || '',
+      report_date: report.date || new Date().toISOString().slice(0, 10),
+    }),
   );
 }
 
@@ -314,19 +387,33 @@ async function bootstrapWorkspace(user, fallbackState) {
 }
 
 async function fetchWorkspaceState(companyId, fallbackState) {
-  const [company, locations, employees, templates, shifts, sickReports, swapRequests, adjustments, notifications, invitations] =
-    await Promise.all([
-      selectSingle('companies', companyId),
-      selectAll('locations', companyId),
-      selectAll('employees', companyId),
-      selectAll('shift_templates', companyId),
-      selectAll('shifts', companyId),
-      selectAll('sick_reports', companyId),
-      selectAll('swap_requests', companyId),
-      selectAll('hour_adjustments', companyId),
-      selectAll('notifications', companyId),
-      selectAll('employee_invitations', companyId),
-    ]);
+  const [
+    company,
+    locations,
+    employees,
+    templates,
+    shifts,
+    sickReports,
+    absenceRequests,
+    delayReports,
+    swapRequests,
+    adjustments,
+    notifications,
+    invitations,
+  ] = await Promise.all([
+    selectSingle('companies', companyId),
+    selectAll('locations', companyId),
+    selectAll('employees', companyId),
+    selectAll('shift_templates', companyId),
+    selectAll('shifts', companyId),
+    selectAll('sick_reports', companyId),
+    selectAll('absence_requests', companyId),
+    selectAll('delay_reports', companyId),
+    selectAll('swap_requests', companyId),
+    selectAll('hour_adjustments', companyId),
+    selectAll('notifications', companyId),
+    selectAll('employee_invitations', companyId),
+  ]);
 
   const locationById = Object.fromEntries(locations.map((location) => [location.id, location.name]));
   const allowances = Object.fromEntries(adjustments.map((row) => [row.employee_id, row.allowances]));
@@ -352,6 +439,27 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       duration: report.duration,
       createdAt: report.created_at,
     })),
+    absenceRequests: absenceRequests.map((request) => ({
+      id: request.id,
+      employeeId: request.employee_id,
+      type: request.type,
+      startDate: request.start_date,
+      endDate: request.end_date,
+      reason: request.reason,
+      status: request.status,
+      adminReason: request.admin_reason,
+      decidedAt: request.decided_at,
+      createdAt: request.created_at,
+    })),
+    delayReports: delayReports.map((report) => ({
+      id: report.id,
+      employeeId: report.employee_id,
+      shiftId: report.shift_id,
+      delayMinutes: report.delay_minutes,
+      message: report.message,
+      date: report.report_date,
+      createdAt: report.created_at,
+    })),
     swapRequests: swapRequests.map((request) => ({
       id: request.id,
       requesterId: request.requester_id,
@@ -374,6 +482,7 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       employeeId: invitation.employee_id,
       email: invitation.email,
       role: invitation.role,
+      token: invitation.token,
       status: invitation.status,
       expiresAt: invitation.expires_at,
       createdAt: invitation.created_at,

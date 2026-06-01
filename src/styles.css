@@ -215,6 +215,23 @@ th {
   background: #b91c1c;
 }
 
+.warning-button {
+  background: linear-gradient(135deg, #d97706, var(--holiday));
+}
+
+.invite-line {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+
 .small-button {
   padding: 0.58rem 0.75rem;
 }

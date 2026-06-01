@@ -11,6 +11,8 @@ create type public.contract_type as enum ('fullTime', 'partTime', 'mini');
 create type public.shift_status as enum ('draft', 'published', 'unassigned');
 create type public.shift_type as enum ('early', 'mid', 'late', 'night', 'onCall');
 create type public.swap_status as enum ('pending', 'approved', 'rejected');
+create type public.absence_type as enum ('vacation', 'timeOff', 'care', 'training', 'unpaid', 'other');
+create type public.request_status as enum ('pending', 'approved', 'rejected');
 create type public.notification_type as enum ('published', 'shift', 'swap', 'sick', 'legal');
 create type public.subscription_status as enum ('trialing', 'active', 'past_due', 'canceled', 'incomplete');
 
@@ -132,6 +134,35 @@ create table public.sick_reports (
   created_at timestamptz not null default now()
 );
 
+
+create table public.absence_requests (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  type public.absence_type not null default 'vacation',
+  start_date date not null,
+  end_date date not null,
+  reason text not null default '',
+  status public.request_status not null default 'pending',
+  admin_reason text not null default '',
+  decided_by uuid references public.profiles(id) on delete set null,
+  decided_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (end_date >= start_date)
+);
+
+create table public.delay_reports (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  shift_id uuid references public.shifts(id) on delete set null,
+  delay_minutes int not null check (delay_minutes > 0),
+  message text not null default '',
+  report_date date not null default current_date,
+  created_at timestamptz not null default now()
+);
+
 create table public.swap_requests (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -242,6 +273,8 @@ create trigger employees_plan_limit before insert on public.employees
   for each row execute function public.enforce_employee_plan_limit();
 create trigger shifts_updated_at before update on public.shifts
   for each row execute function public.touch_updated_at();
+create trigger absence_requests_updated_at before update on public.absence_requests
+  for each row execute function public.touch_updated_at();
 create trigger swap_requests_updated_at before update on public.swap_requests
   for each row execute function public.touch_updated_at();
 create trigger hour_adjustments_updated_at before update on public.hour_adjustments
@@ -278,6 +311,98 @@ as $$
   );
 $$;
 
+
+create or replace function public.get_invitation_by_token(invite_token uuid)
+returns table (
+  id uuid,
+  company_id uuid,
+  company_name text,
+  email text,
+  role public.member_role,
+  status text,
+  expires_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    invitations.id,
+    invitations.company_id,
+    companies.name as company_name,
+    invitations.email,
+    invitations.role,
+    invitations.status,
+    invitations.expires_at
+  from public.employee_invitations invitations
+  join public.companies companies on companies.id = invitations.company_id
+  where invitations.token = invite_token
+  limit 1;
+$$;
+
+create or replace function public.accept_invitation(invite_token uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  invitation public.employee_invitations%rowtype;
+  auth_email text;
+  employee_record public.employees%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  auth_email := lower(auth.jwt() ->> 'email');
+
+  select * into invitation
+  from public.employee_invitations
+  where token = invite_token
+    and status = 'pending'
+    and expires_at > now();
+
+  if not found then
+    raise exception 'Invitation is invalid or expired';
+  end if;
+
+  if lower(invitation.email) <> auth_email then
+    raise exception 'Invitation email does not match authenticated user';
+  end if;
+
+  insert into public.profiles (id, email, full_name)
+  values (auth.uid(), auth_email, coalesce(auth.jwt() -> 'user_metadata' ->> 'full_name', auth_email))
+  on conflict (id) do update set email = excluded.email;
+
+  select * into employee_record
+  from public.employees
+  where id = invitation.employee_id;
+
+  if not found then
+    update public.employee_invitations
+    set status = 'revoked'
+    where id = invitation.id;
+    raise exception 'Employee record no longer exists';
+  end if;
+
+  update public.employees
+  set profile_id = auth.uid(), role = invitation.role
+  where id = employee_record.id;
+
+  insert into public.company_members (company_id, profile_id, role)
+  values (invitation.company_id, auth.uid(), invitation.role)
+  on conflict (company_id, profile_id) do update set role = excluded.role;
+
+  update public.employee_invitations
+  set status = 'accepted', accepted_at = now()
+  where id = invitation.id;
+
+  return invitation.company_id;
+end;
+$$;
+
 alter table public.profiles enable row level security;
 alter table public.companies enable row level security;
 alter table public.company_members enable row level security;
@@ -287,6 +412,8 @@ alter table public.employees enable row level security;
 alter table public.shift_templates enable row level security;
 alter table public.shifts enable row level security;
 alter table public.sick_reports enable row level security;
+alter table public.absence_requests enable row level security;
+alter table public.delay_reports enable row level security;
 alter table public.swap_requests enable row level security;
 alter table public.hour_adjustments enable row level security;
 alter table public.notifications enable row level security;
@@ -371,6 +498,46 @@ create policy "members read sick reports" on public.sick_reports
 create policy "admins manage sick reports" on public.sick_reports
   for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 
+create policy "members create absence requests" on public.absence_requests
+  for insert with check (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = absence_requests.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+create policy "members read own absence requests" on public.absence_requests
+  for select using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = absence_requests.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+create policy "admins update absence requests" on public.absence_requests
+  for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members create delay reports" on public.delay_reports
+  for insert with check (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = delay_reports.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+create policy "members read own delay reports" on public.delay_reports
+  for select using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = delay_reports.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+
 create policy "members read swaps" on public.swap_requests
   for select using (
     public.is_company_admin(company_id)
@@ -412,5 +579,8 @@ create index employees_company_idx on public.employees(company_id);
 create index employee_invitations_company_idx on public.employee_invitations(company_id, status);
 create index shifts_company_date_idx on public.shifts(company_id, shift_date);
 create index sick_reports_company_date_idx on public.sick_reports(company_id, report_date);
+create index absence_requests_company_status_idx on public.absence_requests(company_id, status, start_date);
+create index delay_reports_company_date_idx on public.delay_reports(company_id, report_date);
+
 create index swap_requests_company_status_idx on public.swap_requests(company_id, status);
 create index notifications_recipient_idx on public.notifications(recipient_profile_id, created_at desc);
