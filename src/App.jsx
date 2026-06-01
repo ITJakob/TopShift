@@ -1,10 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import Auth from './components/Auth.jsx';
-import AdminDashboard from './components/AdminDashboard.jsx';
-import MitarbeiterDashboard from './components/MitarbeiterDashboard.jsx';
-import OnboardingWizard from './components/OnboardingWizard.jsx';
-import DemoAdminLogin from './components/DemoAdminLogin.jsx';
-import InviteAccept from './components/InviteAccept.jsx';
 import de from './locales/de.json';
 import en from './locales/en.json';
 import { supabase } from './lib/supabase.js';
@@ -32,6 +27,13 @@ import {
   updateEmployeeRemote,
   updateSwapRequestRemote,
 } from './lib/topshiftStore.js';
+
+
+const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
+const MitarbeiterDashboard = lazy(() => import('./components/MitarbeiterDashboard.jsx'));
+const OnboardingWizard = lazy(() => import('./components/OnboardingWizard.jsx'));
+const DemoAdminLogin = lazy(() => import('./components/DemoAdminLogin.jsx'));
+const InviteAccept = lazy(() => import('./components/InviteAccept.jsx'));
 
 const translations = { de, en };
 
@@ -771,35 +773,37 @@ export default function App() {
         </div>
       )}
 
-      {inviteToken ? (
-        <InviteAccept
-          token={inviteToken}
-          user={user}
-          localInvitations={state.invitations}
-          t={t}
-          onAuthenticated={setUser}
-          onAccepted={acceptInviteSession}
-        />
-      ) : !user ? (
-        isDemoAdminPage ? (
-          <DemoAdminLogin
+      <Suspense fallback={<main className="dashboard"><div className="card skeleton-card">{t('common.loading')}</div></main>}>
+        {inviteToken ? (
+          <InviteAccept
+            token={inviteToken}
+            user={user}
+            localInvitations={state.invitations}
             t={t}
-            onAuthenticated={(demoUser) => {
-              localStorage.removeItem('topshift-state');
-              setState(defaultState);
-              setUser(demoUser);
-            }}
+            onAuthenticated={setUser}
+            onAccepted={acceptInviteSession}
           />
+        ) : !user ? (
+          isDemoAdminPage ? (
+            <DemoAdminLogin
+              t={t}
+              onAuthenticated={(demoUser) => {
+                localStorage.removeItem('topshift-state');
+                setState(defaultState);
+                setUser(demoUser);
+              }}
+            />
+          ) : (
+            <Auth t={t} onAuthenticated={setUser} />
+          )
+        ) : user.role === 'admin' && !state.company.onboardingComplete ? (
+          <OnboardingWizard data={state} actions={actions} t={t} />
+        ) : user.role === 'admin' ? (
+          <AdminDashboard data={state} actions={actions} user={user} t={t} />
         ) : (
-          <Auth t={t} onAuthenticated={setUser} />
-        )
-      ) : user.role === 'admin' && !state.company.onboardingComplete ? (
-        <OnboardingWizard data={state} actions={actions} t={t} />
-      ) : user.role === 'admin' ? (
-        <AdminDashboard data={state} actions={actions} user={user} t={t} />
-      ) : (
-        <MitarbeiterDashboard data={state} actions={actions} user={user} t={t} />
-      )}
+          <MitarbeiterDashboard data={state} actions={actions} user={user} t={t} />
+        )}
+      </Suspense>
     </div>
   );
 }

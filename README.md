@@ -28,4 +28,11 @@ npm run build
 Die App nutzt Supabase, sobald `VITE_SUPABASE_ANON_KEY` gesetzt ist und ein echter Login verwendet wird. Demo-Logins bleiben lokal und speichern im Browser.
 Wichtig fuer Vercel: `VITE_SUPABASE_ANON_KEY` muss im richtigen Scope (Production/Preview) gesetzt sein und danach muss ein neues Deployment gestartet werden, weil Vite die Variable beim Build in das Frontend einbettet.
 - Live-Checkliste: `docs/live-readiness-checklist.md`
+## Demo-Modus
+
+Der interne Demo-Modus ist unter `/demo-admin` erreichbar. Beim Start wird der lokale Demo-State auf aktuelle Beispieldaten zurueckgesetzt.
+
+## Mobile/PWA
+
+TopShift liefert ein Web-App-Manifest und einen kleinen Service Worker fuer App-aehnliches Verhalten und Basis-Offline-Fallbacks aus.
 

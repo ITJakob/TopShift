@@ -370,5 +370,9 @@
   "employee.quickActions": "Schnellaktionen",
   "employee.openSection": "Bereich öffnen",
   "employees.search": "Mitarbeiter suchen",
-  "employees.allContracts": "Alle Beschäftigungen"
+  "employees.allContracts": "Alle Beschäftigungen",
+  "common.loading": "Wird geladen...",
+  "activity.eyebrow": "Audit & Verlauf",
+  "activity.title": "Aktivitäten",
+  "activity.empty": "Noch keine Aktivitäten vorhanden."
 }

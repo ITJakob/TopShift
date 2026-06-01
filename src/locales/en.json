@@ -370,5 +370,9 @@
   "employee.quickActions": "Quick actions",
   "employee.openSection": "Open section",
   "employees.search": "Search employees",
-  "employees.allContracts": "All contracts"
+  "employees.allContracts": "All contracts",
+  "common.loading": "Loading...",
+  "activity.eyebrow": "Audit & history",
+  "activity.title": "Activity",
+  "activity.empty": "No activity yet."
 }

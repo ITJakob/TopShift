@@ -1,0 +1,18 @@
+{
+  "name": "TopShift",
+  "short_name": "TopShift",
+  "description": "B2B shift management for DACH teams.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/topshift-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

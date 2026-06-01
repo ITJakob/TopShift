@@ -8,6 +8,7 @@ import Abwesenheiten from './Abwesenheiten.jsx';
 import OffeneSchichten from './OffeneSchichten.jsx';
 import DemoTestCenter from './DemoTestCenter.jsx';
 import AdminInsights from './AdminInsights.jsx';
+import Aktivitaeten from './Aktivitaeten.jsx';
 import { getLegalProfile } from '../lib/gesetzePruefung.js';
 
 const tabs = [
@@ -20,6 +21,7 @@ const tabs = [
   ['sick', 'admin.sick'],
   ['absence', 'absence.adminTitle'],
   ['openShifts', 'openShifts.adminTitle'],
+  ['activity', 'activity.title'],
   ['notifications', 'admin.notifications'],
   ['readiness', 'readiness.title'],
   ['demoCenter', 'demoCenter.title'],
@@ -58,6 +60,7 @@ export default function AdminDashboard({ data, actions, user, t }) {
       {activeTab === 'sick' && <SickReports data={data} t={t} />}
       {activeTab === 'absence' && <Abwesenheiten data={data} actions={actions} mode="admin" t={t} />}
       {activeTab === 'openShifts' && <OffeneSchichten data={data} actions={actions} mode="admin" t={t} />}
+      {activeTab === 'activity' && <Aktivitaeten data={data} t={t} />}
       {activeTab === 'notifications' && <Notifications data={data} t={t} />}
       {activeTab === 'readiness' && <ReadinessPanel data={data} t={t} />}
       {activeTab === 'demoCenter' && <DemoTestCenter data={data} t={t} />}

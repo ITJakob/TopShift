@@ -260,6 +260,60 @@ th {
   font-size: 0.75rem;
 }
 
+
+.skeleton-card {
+  min-height: 12rem;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.timeline {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.timeline-item p {
+  margin: 0.2rem 0;
+  color: var(--muted);
+}
+
+.timeline-item small {
+  color: var(--muted);
+}
+
+.timeline-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-top: 0.3rem;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.12);
+}
+
+.timeline-dot.success {
+  background: var(--success);
+  box-shadow: 0 0 0 5px rgba(74, 222, 128, 0.12);
+}
+
+.timeline-dot.warning {
+  background: var(--warning);
+  box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.12);
+}
+
+.timeline-dot.danger {
+  background: var(--danger);
+  box-shadow: 0 0 0 5px rgba(248, 113, 113, 0.12);
+}
+
 .auth-layout,
 .dashboard {
   width: min(1480px, calc(100% - 2rem));
