@@ -4,7 +4,7 @@
   "description": "TopShift B2B shift management app",
   "main": "index.js",
   "scripts": {
-    "test": "npm run build",
+    "test": "vitest run && npm run build",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -28,6 +28,7 @@
   "type": "module",
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.2",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
   }
 }

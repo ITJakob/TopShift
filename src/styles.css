@@ -364,7 +364,8 @@ th {
 .info-banner,
 .warning-banner,
 .error-banner,
-.success-banner {
+.success-banner,
+.sync-banner {
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 0.85rem;
@@ -388,6 +389,24 @@ th {
 .success-banner {
   background: rgba(74, 222, 128, 0.12);
   color: #bbf7d0;
+}
+
+
+.sync-banner {
+  width: min(1480px, calc(100% - 2rem));
+  margin: 1rem auto 0;
+  background: rgba(30, 41, 59, 0.82);
+  color: #bfdbfe;
+}
+
+.sync-banner.remote {
+  background: rgba(74, 222, 128, 0.12);
+  color: #bbf7d0;
+}
+
+.sync-banner.error {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
 }
 
 .validation-panel {

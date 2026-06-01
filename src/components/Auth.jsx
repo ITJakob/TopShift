@@ -32,6 +32,7 @@ export default function Auth({ t, onAuthenticated }) {
       email,
       name: email,
       role: 'admin',
+      isDemo: false,
     });
   }
 
@@ -83,6 +84,7 @@ export default function Auth({ t, onAuthenticated }) {
                 email: 'admin@topshift.local',
                 name: 'Demo Admin',
                 role: 'admin',
+                isDemo: true,
               })
             }
           >
@@ -97,6 +99,7 @@ export default function Auth({ t, onAuthenticated }) {
                 name: 'Anna Berger',
                 role: 'employee',
                 employeeId: 'emp-1',
+                isDemo: true,
               })
             }
           >

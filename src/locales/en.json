@@ -190,5 +190,9 @@
   "laws.at.azg": "AZG - Austrian Working Time Act",
   "laws.at.kaazg": "KA-AZG - Austrian Hospital Working Time Act",
   "laws.de.arbzg": "ArbZG - German Working Time Act",
-  "laws.ch.arg": "ArG - Swiss Labour Act"
+  "laws.ch.arg": "ArG - Swiss Labour Act",
+  "sync.local": "Local demo mode active.",
+  "sync.loading": "Loading Supabase data...",
+  "sync.remote": "Supabase sync active.",
+  "sync.error": "Supabase sync unavailable, local fallback active"
 }

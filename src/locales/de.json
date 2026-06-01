@@ -190,5 +190,9 @@
   "laws.at.azg": "AZG – Arbeitszeitgesetz Österreich",
   "laws.at.kaazg": "KA-AZG – Krankenanstalten-Arbeitszeitgesetz Österreich",
   "laws.de.arbzg": "ArbZG – Arbeitszeitgesetz Deutschland",
-  "laws.ch.arg": "ArG – Arbeitsgesetz Schweiz"
+  "laws.ch.arg": "ArG – Arbeitsgesetz Schweiz",
+  "sync.local": "Lokaler Demo-Modus aktiv.",
+  "sync.loading": "Supabase-Daten werden geladen...",
+  "sync.remote": "Supabase-Synchronisierung aktiv.",
+  "sync.error": "Supabase-Synchronisierung nicht verfügbar, lokaler Fallback aktiv"
 }

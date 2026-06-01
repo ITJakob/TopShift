@@ -4,6 +4,22 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import MitarbeiterDashboard from './components/MitarbeiterDashboard.jsx';
 import de from './locales/de.json';
 import en from './locales/en.json';
+import { supabase } from './lib/supabase.js';
+import {
+  addEmployeeRemote,
+  addSickReportRemote,
+  addSwapRequestRemote,
+  addTemplateRemote,
+  createNotificationRemote,
+  loadRemoteWorkspace,
+  publishScheduleRemote,
+  saveAllowanceRemote,
+  saveCompanyRemote,
+  saveShiftRemote,
+  shouldUseRemote,
+  updateEmployeeRemote,
+  updateSwapRequestRemote,
+} from './lib/topshiftStore.js';
 
 const translations = { de, en };
 
@@ -131,6 +147,7 @@ export default function App() {
   const [language, setLanguage] = useState(() => localStorage.getItem('topshift-language') || 'de');
   const [user, setUser] = useState(null);
   const [state, setState] = useState(loadState);
+  const [syncStatus, setSyncStatus] = useState({ mode: 'local', message: 'sync.local' });
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -141,6 +158,38 @@ export default function App() {
     localStorage.setItem('topshift-state', JSON.stringify(state));
   }, [state]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRemoteData() {
+      if (!shouldUseRemote(user)) {
+        setSyncStatus({ mode: 'local', message: 'sync.local' });
+        return;
+      }
+
+      setSyncStatus({ mode: 'loading', message: 'sync.loading' });
+      try {
+        const result = await loadRemoteWorkspace(user, defaultState, language);
+        if (cancelled) {
+          return;
+        }
+        setState(result.state);
+        setUser((current) => ({ ...current, ...result.userPatch }));
+        setSyncStatus({ mode: 'remote', message: 'sync.remote' });
+      } catch (error) {
+        if (!cancelled) {
+          setSyncStatus({ mode: 'error', message: 'sync.error', detail: error.message });
+        }
+      }
+    }
+
+    loadRemoteData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, language]);
+
   const t = useMemo(() => {
     const translate = (key, params = {}) => {
       const dictionary = translations[language] || translations.de;
@@ -150,129 +199,179 @@ export default function App() {
     return translate;
   }, [language]);
 
+  function runRemote(operation) {
+    if (!shouldUseRemote(user)) {
+      return;
+    }
+
+    operation()
+      .then(() => setSyncStatus({ mode: 'remote', message: 'sync.remote' }))
+      .catch((error) => setSyncStatus({ mode: 'error', message: 'sync.error', detail: error.message }));
+  }
+
   const actions = useMemo(
     () => ({
-      setCompany: (company) => setState((current) => ({ ...current, company })),
+      setCompany: (company) =>
+        setState((current) => {
+          const next = { ...current, company };
+          runRemote(() => saveCompanyRemote(company));
+          return next;
+        }),
       addEmployee: (employee) =>
-        setState((current) => ({
-          ...current,
-          employees: [...current.employees, { ...employee, id: crypto.randomUUID() }],
-        })),
+        setState((current) => {
+          const created = { ...employee, id: crypto.randomUUID() };
+          const next = { ...current, employees: [...current.employees, created] };
+          runRemote(() => addEmployeeRemote(current.company.id, created));
+          return next;
+        }),
       updateEmployee: (employeeId, patch) =>
-        setState((current) => ({
-          ...current,
-          employees: current.employees.map((employee) =>
-            employee.id === employeeId ? { ...employee, ...patch } : employee,
-          ),
-        })),
+        setState((current) => {
+          const next = {
+            ...current,
+            employees: current.employees.map((employee) =>
+              employee.id === employeeId ? { ...employee, ...patch } : employee,
+            ),
+          };
+          runRemote(() => updateEmployeeRemote(current.company.id, employeeId, patch));
+          return next;
+        }),
       saveShift: (shift) =>
         setState((current) => {
           const exists = current.shifts.some((item) => item.id === shift.id);
           const normalized = { ...shift, id: shift.id || crypto.randomUUID() };
-          return {
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'shift',
+            textKey: 'notifications.shiftChanged',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
             ...current,
             shifts: exists
               ? current.shifts.map((item) => (item.id === shift.id ? normalized : item))
               : [...current.shifts, normalized],
-            notifications: [
-              {
-                id: crypto.randomUUID(),
-                type: 'shift',
-                textKey: 'notifications.shiftChanged',
-                createdAt: new Date().toISOString(),
-              },
-              ...current.notifications,
-            ],
+            notifications: [notification, ...current.notifications],
           };
+          runRemote(async () => {
+            await saveShiftRemote(current.company, normalized, user.id);
+            await createNotificationRemote(current.company.id, 'shift', notification.textKey);
+          });
+          return next;
         }),
       publishSchedule: () =>
-        setState((current) => ({
-          ...current,
-          shifts: current.shifts.map((shift) =>
-            shift.status === 'draft' ? { ...shift, status: 'published' } : shift,
-          ),
-          notifications: [
-            {
-              id: crypto.randomUUID(),
-              type: 'published',
-              textKey: 'notifications.newPlan',
-              createdAt: new Date().toISOString(),
-            },
-            ...current.notifications,
-          ],
-        })),
+        setState((current) => {
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'published',
+            textKey: 'notifications.newPlan',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            shifts: current.shifts.map((shift) =>
+              shift.status === 'draft' ? { ...shift, status: 'published' } : shift,
+            ),
+            notifications: [notification, ...current.notifications],
+          };
+          runRemote(async () => {
+            await publishScheduleRemote(current.company.id);
+            await createNotificationRemote(current.company.id, 'published', notification.textKey);
+          });
+          return next;
+        }),
       addTemplate: (template) =>
-        setState((current) => ({
-          ...current,
-          templates: [...current.templates, { ...template, id: crypto.randomUUID() }],
-        })),
+        setState((current) => {
+          const created = { ...template, id: crypto.randomUUID() };
+          const next = { ...current, templates: [...current.templates, created] };
+          runRemote(() => addTemplateRemote(current.company.id, created));
+          return next;
+        }),
       addSickReport: (report) =>
         setState((current) => {
           const reportDate = report.date || new Date().toISOString().slice(0, 10);
-          return {
+          const created = {
+            ...report,
+            id: crypto.randomUUID(),
+            date: reportDate,
+            createdAt: new Date().toISOString(),
+          };
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'sick',
+            textKey: 'notifications.sick',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
             ...current,
-            sickReports: [
-              {
-                ...report,
-                id: crypto.randomUUID(),
-                date: reportDate,
-                createdAt: new Date().toISOString(),
-              },
-              ...current.sickReports,
-            ],
+            sickReports: [created, ...current.sickReports],
             shifts: current.shifts.map((shift) =>
               shift.employeeId === report.employeeId && shift.date >= reportDate && shift.status === 'published'
                 ? { ...shift, employeeId: '', status: 'unassigned', notes: 'sick-report' }
                 : shift,
             ),
-            notifications: [
-              {
-                id: crypto.randomUUID(),
-                type: 'sick',
-                textKey: 'notifications.sick',
-                createdAt: new Date().toISOString(),
-              },
-              ...current.notifications,
-            ],
+            notifications: [notification, ...current.notifications],
           };
+          runRemote(async () => {
+            await addSickReportRemote(current.company.id, created);
+            await createNotificationRemote(current.company.id, 'sick', notification.textKey);
+          });
+          return next;
         }),
       addSwapRequest: (request) =>
-        setState((current) => ({
-          ...current,
-          swapRequests: [
-            {
-              ...request,
-              id: crypto.randomUUID(),
-              status: 'pending',
-              createdAt: new Date().toISOString(),
-            },
-            ...current.swapRequests,
-          ],
-          notifications: [
-            {
-              id: crypto.randomUUID(),
-              type: 'swap',
-              textKey: 'notifications.swap',
-              createdAt: new Date().toISOString(),
-            },
-            ...current.notifications,
-          ],
-        })),
+        setState((current) => {
+          const created = {
+            ...request,
+            id: crypto.randomUUID(),
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+          };
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'swap',
+            textKey: 'notifications.swap',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            swapRequests: [created, ...current.swapRequests],
+            notifications: [notification, ...current.notifications],
+          };
+          runRemote(async () => {
+            await addSwapRequestRemote(current.company.id, created);
+            await createNotificationRemote(current.company.id, 'swap', notification.textKey);
+          });
+          return next;
+        }),
       updateSwapRequest: (requestId, patch) =>
-        setState((current) => ({
-          ...current,
-          swapRequests: current.swapRequests.map((request) =>
-            request.id === requestId ? { ...request, ...patch } : request,
-          ),
-        })),
+        setState((current) => {
+          const next = {
+            ...current,
+            swapRequests: current.swapRequests.map((request) =>
+              request.id === requestId ? { ...request, ...patch } : request,
+            ),
+          };
+          runRemote(() => updateSwapRequestRemote(current.company.id, requestId, patch));
+          return next;
+        }),
       setAllowance: (employeeId, value) =>
-        setState((current) => ({
-          ...current,
-          allowances: { ...current.allowances, [employeeId]: value },
-        })),
+        setState((current) => {
+          const next = {
+            ...current,
+            allowances: { ...current.allowances, [employeeId]: value },
+          };
+          runRemote(() => saveAllowanceRemote(current.company.id, employeeId, value));
+          return next;
+        }),
     }),
-    [],
+    [user],
   );
+
+  async function logout() {
+    if (shouldUseRemote(user)) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+  }
 
   return (
     <div className="app-shell">
@@ -294,12 +393,18 @@ export default function App() {
             </button>
           </div>
           {user && (
-            <button className="ghost-button" onClick={() => setUser(null)}>
+            <button className="ghost-button" onClick={logout}>
               {t('nav.logout')}
             </button>
           )}
         </div>
       </header>
+
+      {user && (
+        <div className={`sync-banner ${syncStatus.mode}`}>
+          {t(syncStatus.message)}{syncStatus.detail ? `: ${syncStatus.detail}` : ''}
+        </div>
+      )}
 
       {!user ? (
         <Auth t={t} onAuthenticated={setUser} />

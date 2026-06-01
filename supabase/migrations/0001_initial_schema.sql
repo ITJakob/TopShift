@@ -1,0 +1,341 @@
+-- TopShift production schema for Supabase.
+-- Apply with: supabase db push
+
+create extension if not exists pgcrypto;
+
+create type public.company_country as enum ('at', 'de', 'ch');
+create type public.company_industry as enum ('general', 'hospitality', 'retail', 'healthcare', 'production');
+create type public.company_plan as enum ('free', 'small', 'business', 'enterprise');
+create type public.member_role as enum ('admin', 'employee');
+create type public.contract_type as enum ('fullTime', 'partTime', 'mini');
+create type public.shift_status as enum ('draft', 'published', 'unassigned');
+create type public.shift_type as enum ('early', 'mid', 'late', 'night', 'onCall');
+create type public.swap_status as enum ('pending', 'approved', 'rejected');
+create type public.notification_type as enum ('published', 'shift', 'swap', 'sick', 'legal');
+create type public.subscription_status as enum ('trialing', 'active', 'past_due', 'canceled', 'incomplete');
+
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  full_name text not null default '',
+  preferred_language text not null default 'de' check (preferred_language in ('de', 'en')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.companies (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  logo_url text,
+  country public.company_country not null default 'at',
+  industry public.company_industry not null default 'general',
+  plan public.company_plan not null default 'free',
+  stripe_customer_id text,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.company_members (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  role public.member_role not null default 'employee',
+  created_at timestamptz not null default now(),
+  unique (company_id, profile_id)
+);
+
+create table public.locations (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now(),
+  unique (company_id, name)
+);
+
+create table public.employees (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  profile_id uuid references public.profiles(id) on delete set null,
+  name text not null,
+  email text not null,
+  role public.member_role not null default 'employee',
+  contract public.contract_type not null default 'fullTime',
+  weekly_target numeric(5,2) not null default 40,
+  is_minor boolean not null default false,
+  preferences text not null default '',
+  preferred_times text not null default '',
+  avoid_days text not null default '',
+  max_night_shifts int not null default 0,
+  other_notes text not null default '',
+  invited_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (company_id, email)
+);
+
+create table public.shift_templates (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  name text not null,
+  start_time time not null,
+  end_time time not null,
+  break_minutes int not null default 0,
+  type public.shift_type not null default 'early',
+  created_at timestamptz not null default now()
+);
+
+create table public.shifts (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid references public.employees(id) on delete set null,
+  location_id uuid references public.locations(id) on delete set null,
+  shift_date date not null,
+  start_time time not null,
+  end_time time not null,
+  break_minutes int not null default 0,
+  type public.shift_type not null default 'early',
+  status public.shift_status not null default 'draft',
+  notes text not null default '',
+  override_log jsonb,
+  actual boolean not null default true,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.sick_reports (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  report_date date not null default current_date,
+  duration text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table public.swap_requests (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  requester_id uuid not null references public.employees(id) on delete cascade,
+  own_shift_id uuid not null references public.shifts(id) on delete cascade,
+  target_shift_id uuid not null references public.shifts(id) on delete cascade,
+  status public.swap_status not null default 'pending',
+  message text not null default '',
+  reason text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.hour_adjustments (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  month text not null check (month ~ '^[0-9]{4}-[0-9]{2}$'),
+  allowances text not null default '',
+  corrected_planned numeric(8,2),
+  corrected_actual numeric(8,2),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (employee_id, month)
+);
+
+create table public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  recipient_profile_id uuid references public.profiles(id) on delete cascade,
+  type public.notification_type not null,
+  text_key text not null,
+  payload jsonb not null default '{}'::jsonb,
+  delivered_email_at timestamptz,
+  delivered_push_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  actor_profile_id uuid references public.profiles(id) on delete set null,
+  action text not null,
+  entity_table text not null,
+  entity_id uuid,
+  reason text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null unique references public.companies(id) on delete cascade,
+  stripe_subscription_id text unique,
+  status public.subscription_status,
+  plan public.company_plan not null default 'free',
+  current_period_end timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create trigger profiles_updated_at before update on public.profiles
+  for each row execute function public.touch_updated_at();
+create trigger companies_updated_at before update on public.companies
+  for each row execute function public.touch_updated_at();
+create trigger employees_updated_at before update on public.employees
+  for each row execute function public.touch_updated_at();
+create trigger shifts_updated_at before update on public.shifts
+  for each row execute function public.touch_updated_at();
+create trigger swap_requests_updated_at before update on public.swap_requests
+  for each row execute function public.touch_updated_at();
+create trigger hour_adjustments_updated_at before update on public.hour_adjustments
+  for each row execute function public.touch_updated_at();
+create trigger subscriptions_updated_at before update on public.subscriptions
+  for each row execute function public.touch_updated_at();
+
+create or replace function public.is_company_member(target_company_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.company_members
+    where company_id = target_company_id
+      and profile_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_company_admin(target_company_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.company_members
+    where company_id = target_company_id
+      and profile_id = auth.uid()
+      and role = 'admin'
+  );
+$$;
+
+alter table public.profiles enable row level security;
+alter table public.companies enable row level security;
+alter table public.company_members enable row level security;
+alter table public.locations enable row level security;
+alter table public.employees enable row level security;
+alter table public.shift_templates enable row level security;
+alter table public.shifts enable row level security;
+alter table public.sick_reports enable row level security;
+alter table public.swap_requests enable row level security;
+alter table public.hour_adjustments enable row level security;
+alter table public.notifications enable row level security;
+alter table public.audit_logs enable row level security;
+alter table public.subscriptions enable row level security;
+
+create policy "profiles can read self" on public.profiles
+  for select using (id = auth.uid());
+create policy "profiles can insert self" on public.profiles
+  for insert with check (id = auth.uid());
+create policy "profiles can update self" on public.profiles
+  for update using (id = auth.uid()) with check (id = auth.uid());
+
+create policy "authenticated users can bootstrap companies" on public.companies
+  for insert to authenticated with check (created_by = auth.uid());
+create policy "members can read companies" on public.companies
+  for select using (public.is_company_member(id));
+create policy "admins can update companies" on public.companies
+  for update using (public.is_company_admin(id)) with check (public.is_company_admin(id));
+
+create policy "users can read their memberships" on public.company_members
+  for select using (profile_id = auth.uid() or public.is_company_admin(company_id));
+create policy "users can bootstrap own admin membership" on public.company_members
+  for insert to authenticated with check (
+    profile_id = auth.uid()
+    and (
+      public.is_company_admin(company_id)
+      or exists (
+        select 1 from public.companies
+        where companies.id = company_id
+          and companies.created_by = auth.uid()
+      )
+    )
+  );
+create policy "admins manage memberships" on public.company_members
+  for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+create policy "admins delete memberships" on public.company_members
+  for delete using (public.is_company_admin(company_id));
+
+create policy "members read locations" on public.locations
+  for select using (public.is_company_member(company_id));
+create policy "admins manage locations" on public.locations
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members read employees" on public.employees
+  for select using (public.is_company_member(company_id));
+create policy "admins manage employees" on public.employees
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+create policy "employees update own preferences" on public.employees
+  for update using (profile_id = auth.uid()) with check (profile_id = auth.uid());
+
+create policy "members read templates" on public.shift_templates
+  for select using (public.is_company_member(company_id));
+create policy "admins manage templates" on public.shift_templates
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members read relevant shifts" on public.shifts
+  for select using (public.is_company_member(company_id));
+create policy "admins manage shifts" on public.shifts
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members insert sick reports" on public.sick_reports
+  for insert with check (public.is_company_member(company_id));
+create policy "members read sick reports" on public.sick_reports
+  for select using (public.is_company_member(company_id));
+create policy "admins manage sick reports" on public.sick_reports
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members read swaps" on public.swap_requests
+  for select using (public.is_company_member(company_id));
+create policy "members create swaps" on public.swap_requests
+  for insert with check (public.is_company_member(company_id));
+create policy "admins update swaps" on public.swap_requests
+  for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members read hour adjustments" on public.hour_adjustments
+  for select using (public.is_company_member(company_id));
+create policy "admins manage hour adjustments" on public.hour_adjustments
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members read notifications" on public.notifications
+  for select using (
+    public.is_company_member(company_id)
+    and (recipient_profile_id is null or recipient_profile_id = auth.uid() or public.is_company_admin(company_id))
+  );
+create policy "admins create notifications" on public.notifications
+  for insert with check (public.is_company_admin(company_id));
+
+create policy "admins read audit logs" on public.audit_logs
+  for select using (public.is_company_admin(company_id));
+create policy "admins create audit logs" on public.audit_logs
+  for insert with check (public.is_company_admin(company_id));
+
+create policy "admins read subscriptions" on public.subscriptions
+  for select using (public.is_company_admin(company_id));
+create policy "admins update subscriptions" on public.subscriptions
+  for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create index employees_company_idx on public.employees(company_id);
+create index shifts_company_date_idx on public.shifts(company_id, shift_date);
+create index sick_reports_company_date_idx on public.sick_reports(company_id, report_date);
+create index swap_requests_company_status_idx on public.swap_requests(company_id, status);
+create index notifications_recipient_idx on public.notifications(recipient_profile_id, created_at desc);
