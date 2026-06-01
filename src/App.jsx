@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Auth from './components/Auth.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import MitarbeiterDashboard from './components/MitarbeiterDashboard.jsx';
+import OnboardingWizard from './components/OnboardingWizard.jsx';
 import de from './locales/de.json';
 import en from './locales/en.json';
 import { supabase } from './lib/supabase.js';
@@ -29,8 +30,10 @@ const defaultCompany = {
   logo: '',
   country: 'at',
   industry: 'general',
+  region: 'at-wien',
   locations: ['Wien Zentrale'],
   plan: 'free',
+  onboardingComplete: true,
 };
 
 const defaultEmployees = [
@@ -113,6 +116,7 @@ const defaultState = {
   swapRequests: [],
   allowances: {},
   notifications: [],
+  invitations: [],
   templates: [
     { id: 'tpl-early', name: 'Früh 08-16:30', start: '08:00', end: '16:30', breakMinutes: 30, type: 'early' },
     { id: 'tpl-night', name: 'Nacht 22-06', start: '22:00', end: '06:00', breakMinutes: 45, type: 'night' },
@@ -476,6 +480,8 @@ export default function App() {
 
       {!user ? (
         <Auth t={t} onAuthenticated={setUser} />
+      ) : user.role === 'admin' && !state.company.onboardingComplete ? (
+        <OnboardingWizard data={state} actions={actions} t={t} />
       ) : user.role === 'admin' ? (
         <AdminDashboard data={state} actions={actions} user={user} t={t} />
       ) : (

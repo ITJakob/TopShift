@@ -42,6 +42,7 @@ export function calculateMonthlyHours({
   vacationDays = [],
   allowances = {},
   country = 'at',
+  region = '',
   month = monthKey(new Date()),
 }) {
   return employees.map((employee) => {
@@ -63,7 +64,7 @@ export function calculateMonthlyHours({
       0,
     );
     const holiday = employeeShifts.reduce(
-      (sum, shift) => sum + countHoursByDayPredicate(shift, (date) => isHoliday(country, date)),
+      (sum, shift) => sum + countHoursByDayPredicate(shift, (date) => isHoliday(country, date, region)),
       0,
     );
     const sickDays = sickReports.filter(

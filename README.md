@@ -21,7 +21,7 @@ npm run build
 
 - Datenbankschema/RLS: `supabase/migrations/0001_initial_schema.sql`
 - Optionaler Seed: `supabase/seed.sql`
-- Edge-Function-Skelette: `supabase/functions/send-notification` und `supabase/functions/stripe-webhook`
+- Edge-Function-Skelette: `supabase/functions/send-notification`, `supabase/functions/stripe-webhook` und `supabase/functions/create-checkout-session`
 - Vercel-Konfiguration: `vercel.json`
 - Details: `docs/deployment.md`
 

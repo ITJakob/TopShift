@@ -346,7 +346,7 @@ function addDays(date, days) {
   return result;
 }
 
-export function isHoliday(country, date) {
+export function isHoliday(country, date, region = "") {
   const checked = new Date(date);
   const monthDay = `${String(checked.getMonth() + 1).padStart(2, '0')}-${String(
     checked.getDate(),
@@ -356,7 +356,17 @@ export function isHoliday(country, date) {
     de: ['01-01', '05-01', '10-03', '12-25', '12-26'],
     ch: ['01-01', '08-01', '12-25'],
   };
-  if (fixed[country]?.includes(monthDay)) {
+  const regional = {
+    'at-wien': ['11-15'],
+    'at-stmk': ['03-19'],
+    'de-by': ['01-06', '08-15', '11-01'],
+    'de-be': ['03-08'],
+    'de-sn': ['10-31', '11-20'],
+    'ch-zh': ['05-01'],
+    'ch-ge': ['12-31'],
+    'ch-ti': ['01-06', '03-19', '06-29'],
+  };
+  if (fixed[country]?.includes(monthDay) || regional[region]?.includes(monthDay)) {
     return true;
   }
 
@@ -483,7 +493,7 @@ export function validateShift({ shift, existingShifts = [], employee, company })
     issues.push(issue('legal.sundayPermit', { law: lawKey }));
   }
 
-  if (isHoliday(company?.country, candidateRange.start) || hasSundayWork(shift)) {
+  if (isHoliday(company?.country, candidateRange.start, company?.region) || hasSundayWork(shift)) {
     warnings.push(issue('legal.holidayPremium', {}, 'warning'));
   }
 

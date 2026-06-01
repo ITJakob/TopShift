@@ -106,8 +106,10 @@ describe('DACH legal validation', () => {
     expect(result.suggestedBreakMinutes).toBe(30);
   });
 
-  it('recognizes fixed Austrian public holidays', () => {
+  it('recognizes fixed and regional public holidays', () => {
     expect(isHoliday('at', new Date('2026-01-01T12:00:00'))).toBe(true);
     expect(isHoliday('at', new Date('2026-01-02T12:00:00'))).toBe(false);
+    expect(isHoliday('de', new Date('2026-01-06T12:00:00'), 'de-by')).toBe(true);
+    expect(isHoliday('de', new Date('2026-01-06T12:00:00'), 'de-be')).toBe(false);
   });
 });

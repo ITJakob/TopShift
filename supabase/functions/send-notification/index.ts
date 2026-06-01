@@ -31,8 +31,27 @@ serve(async (request) => {
     return json({ error: error.message }, 500);
   }
 
-  // Wire RESEND_API_KEY here when email delivery is enabled. Until then the
-  // function records a delivery timestamp so the workflow can be tested.
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (resendApiKey && notification.profiles?.email) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: Deno.env.get('TOPSHIFT_MAIL_FROM') ?? 'TopShift <noreply@topshift.app>',
+        to: notification.profiles.email,
+        subject: `TopShift: ${notification.text_key}`,
+        html: `<p>${notification.text_key}</p><pre>${JSON.stringify(notification.payload ?? {}, null, 2)}</pre>`,
+      }),
+    });
+
+    if (!response.ok) {
+      return json({ error: await response.text() }, 502);
+    }
+  }
+
   const { error: updateError } = await supabase
     .from('notifications')
     .update({ delivered_email_at: new Date().toISOString() })

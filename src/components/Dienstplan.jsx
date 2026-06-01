@@ -284,14 +284,14 @@ export default function Dienstplan({ data, actions, user, t }) {
         <div className={view === 'week' ? 'calendar-grid week' : 'calendar-grid month'}>
           {days.map((day) => (
             <div
-              className={day.isWeekend || isHoliday(data.company.country, day.date) ? 'calendar-day special-day' : 'calendar-day'}
+              className={day.isWeekend || isHoliday(data.company.country, day.date, data.company.region) ? 'calendar-day special-day' : 'calendar-day'}
               key={day.iso}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => onDrop(day.iso, event)}
             >
               <div className="day-header">
                 <strong>{day.label}</strong>
-                {(day.isWeekend || isHoliday(data.company.country, day.date)) && <span>{t('legal.holidayPremium')}</span>}
+                {(day.isWeekend || isHoliday(data.company.country, day.date, data.company.region)) && <span>{t('legal.holidayPremium')}</span>}
               </div>
               {data.shifts
                 .filter((shift) => shift.date === day.iso)

@@ -46,7 +46,9 @@ export async function saveCompanyRemote(company) {
         logo_url: company.logo || null,
         country: company.country,
         industry: company.industry,
+        region: company.region || defaultRegion(company.country),
         plan: company.plan,
+        onboarding_completed: Boolean(company.onboardingComplete),
       })
       .eq('id', company.id),
   );
@@ -55,25 +57,40 @@ export async function saveCompanyRemote(company) {
 }
 
 export async function addEmployeeRemote(companyId, employee) {
+  const { data, error } = await supabase.from('employees').upsert(
+    {
+      id: isUuid(employee.id) ? employee.id : undefined,
+      company_id: companyId,
+      name: employee.name,
+      email: employee.email.toLowerCase(),
+      role: employee.role,
+      contract: employee.contract,
+      weekly_target: employee.weeklyTarget,
+      is_minor: employee.isMinor,
+      preferences: employee.preferences || '',
+      preferred_times: employee.preferredTimes || '',
+      avoid_days: employee.avoidDays || '',
+      max_night_shifts: employee.maxNightShifts || 0,
+      other_notes: employee.otherNotes || '',
+      invited_at: new Date().toISOString(),
+    },
+    { onConflict: 'company_id,email' },
+  ).select('id,email,role').single();
+
+  if (error) {
+    throw error;
+  }
+
   await throwOnError(
-    supabase.from('employees').upsert(
+    supabase.from('employee_invitations').upsert(
       {
-        id: isUuid(employee.id) ? employee.id : undefined,
         company_id: companyId,
-        name: employee.name,
-        email: employee.email,
-        role: employee.role,
-        contract: employee.contract,
-        weekly_target: employee.weeklyTarget,
-        is_minor: employee.isMinor,
-        preferences: employee.preferences || '',
-        preferred_times: employee.preferredTimes || '',
-        avoid_days: employee.avoidDays || '',
-        max_night_shifts: employee.maxNightShifts || 0,
-        other_notes: employee.otherNotes || '',
-        invited_at: new Date().toISOString(),
+        employee_id: data.id,
+        email: data.email,
+        role: data.role,
+        status: 'pending',
       },
-      { onConflict: 'company_id,email' },
+      { onConflict: 'company_id,email,status' },
     ),
   );
 }
@@ -240,7 +257,9 @@ async function bootstrapWorkspace(user, fallbackState) {
       logo_url: fallbackState.company.logo || null,
       country: fallbackState.company.country,
       industry: fallbackState.company.industry,
+      region: fallbackState.company.region || defaultRegion(fallbackState.company.country),
       plan: fallbackState.company.plan,
+      onboarding_completed: false,
       created_by: user.id,
     })
     .select()
@@ -266,7 +285,7 @@ async function bootstrapWorkspace(user, fallbackState) {
   const employees = fallbackState.employees.map((employee) => ({
     company_id: company.id,
     name: employee.name,
-    email: employee.email,
+    email: employee.email.toLowerCase(),
     role: employee.role,
     contract: employee.contract,
     weekly_target: employee.weeklyTarget,
@@ -295,7 +314,7 @@ async function bootstrapWorkspace(user, fallbackState) {
 }
 
 async function fetchWorkspaceState(companyId, fallbackState) {
-  const [company, locations, employees, templates, shifts, sickReports, swapRequests, adjustments, notifications] =
+  const [company, locations, employees, templates, shifts, sickReports, swapRequests, adjustments, notifications, invitations] =
     await Promise.all([
       selectSingle('companies', companyId),
       selectAll('locations', companyId),
@@ -306,6 +325,7 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       selectAll('swap_requests', companyId),
       selectAll('hour_adjustments', companyId),
       selectAll('notifications', companyId),
+      selectAll('employee_invitations', companyId),
     ]);
 
   const locationById = Object.fromEntries(locations.map((location) => [location.id, location.name]));
@@ -318,8 +338,10 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       logo: company.logo_url || '',
       country: company.country,
       industry: company.industry,
+      region: company.region || defaultRegion(company.country),
       locations: locations.length ? locations.map((location) => location.name) : fallbackState.company.locations,
       plan: company.plan,
+      onboardingComplete: company.onboarding_completed,
     },
     employees: employees.map(mapEmployee),
     shifts: shifts.map((shift) => mapShift(shift, locationById)),
@@ -346,6 +368,15 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       type: notification.type,
       textKey: notification.text_key,
       createdAt: notification.created_at,
+    })),
+    invitations: invitations.map((invitation) => ({
+      id: invitation.id,
+      employeeId: invitation.employee_id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      expiresAt: invitation.expires_at,
+      createdAt: invitation.created_at,
     })),
     templates: templates.map((template) => ({
       id: template.id,
@@ -470,6 +501,14 @@ async function throwOnError(query) {
 
 function currentMonth() {
   return new Date().toISOString().slice(0, 7);
+}
+
+function defaultRegion(country) {
+  return {
+    at: 'at-wien',
+    de: 'de-by',
+    ch: 'ch-zh',
+  }[country] || 'at-wien';
 }
 
 function isUuid(value) {

@@ -94,6 +94,12 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
           <span className="chip">{t(`plan.${data.company.plan}`)}</span>
         </div>
         <div className="employee-list">
+          {data.invitations?.length > 0 && (
+            <div className="info-banner">
+              <strong>{t('employees.invitations')}:</strong>{' '}
+              {data.invitations.filter((invite) => invite.status === 'pending').length} {t('common.pending')}
+            </div>
+          )}
           {data.employees.map((employee) => (
             <article className="employee-card" key={employee.id}>
               <div>
@@ -106,6 +112,9 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
                 {employee.isMinor && <span className="status pending">{t('employees.isMinor')}</span>}
               </div>
               {employee.preferences && <p className="muted">{employee.preferences}</p>}
+              <small className="muted">
+                {t('employees.inviteStatus')}: {data.invitations?.find((invite) => invite.email === employee.email)?.status || 'local'}
+              </small>
             </article>
           ))}
         </div>

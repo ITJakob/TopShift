@@ -29,7 +29,9 @@ create table public.companies (
   logo_url text,
   country public.company_country not null default 'at',
   industry public.company_industry not null default 'general',
+  region text not null default 'at-wien',
   plan public.company_plan not null default 'free',
+  onboarding_completed boolean not null default false,
   stripe_customer_id text,
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -44,6 +46,7 @@ create table public.company_members (
   created_at timestamptz not null default now(),
   unique (company_id, profile_id)
 );
+
 
 create table public.locations (
   id uuid primary key default gen_random_uuid(),
@@ -73,6 +76,22 @@ create table public.employees (
   updated_at timestamptz not null default now(),
   unique (company_id, email)
 );
+
+create table public.employee_invitations (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid references public.employees(id) on delete cascade,
+  email text not null,
+  role public.member_role not null default 'employee',
+  token uuid not null default gen_random_uuid(),
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'revoked')),
+  expires_at timestamptz not null default now() + interval '14 days',
+  accepted_at timestamptz,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (company_id, email, status)
+);
+
 
 create table public.shift_templates (
   id uuid primary key default gen_random_uuid(),
@@ -262,6 +281,7 @@ $$;
 alter table public.profiles enable row level security;
 alter table public.companies enable row level security;
 alter table public.company_members enable row level security;
+alter table public.employee_invitations enable row level security;
 alter table public.locations enable row level security;
 alter table public.employees enable row level security;
 alter table public.shift_templates enable row level security;
@@ -305,6 +325,12 @@ create policy "admins manage memberships" on public.company_members
   for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 create policy "admins delete memberships" on public.company_members
   for delete using (public.is_company_admin(company_id));
+
+
+create policy "admins manage invitations" on public.employee_invitations
+  for all using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+create policy "users can read own pending invitations" on public.employee_invitations
+  for select using (lower(email) = lower((auth.jwt() ->> 'email')));
 
 create policy "members read locations" on public.locations
   for select using (public.is_company_member(company_id));
@@ -383,6 +409,7 @@ create policy "admins update subscriptions" on public.subscriptions
   for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
 
 create index employees_company_idx on public.employees(company_id);
+create index employee_invitations_company_idx on public.employee_invitations(company_id, status);
 create index shifts_company_date_idx on public.shifts(company_id, shift_date);
 create index sick_reports_company_date_idx on public.sick_reports(company_id, report_date);
 create index swap_requests_company_status_idx on public.swap_requests(company_id, status);

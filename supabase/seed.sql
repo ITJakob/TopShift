@@ -4,13 +4,15 @@ insert into public.profiles (id, email, full_name, preferred_language)
 values ('00000000-0000-0000-0000-000000000001', 'admin@topshift.local', 'Demo Admin', 'de')
 on conflict (id) do nothing;
 
-insert into public.companies (id, name, country, industry, plan, created_by)
+insert into public.companies (id, name, country, industry, region, plan, onboarding_completed, created_by)
 values (
   '10000000-0000-0000-0000-000000000001',
   'TopShift Demo GmbH',
   'at',
   'general',
+  'at-wien',
   'free',
+  true,
   '00000000-0000-0000-0000-000000000001'
 )
 on conflict (id) do nothing;

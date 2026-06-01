@@ -42,6 +42,7 @@
   - `topshift_plan=small`
   - `topshift_plan=business`
   - `company_id=<uuid>` on checkout/session/subscription metadata
+- Deploy `create-checkout-session`.
 - Enable signature verification in `stripe-webhook` before production use.
 - Confirm server-side plan limits using the `subscriptions` table, not only frontend checks.
 

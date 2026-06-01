@@ -231,6 +231,10 @@ th {
   padding: clamp(2rem, 6vw, 4rem);
 }
 
+.onboarding-hero {
+  margin-bottom: 1rem;
+}
+
 .hero-card h1 {
   margin: 0;
   font-size: clamp(3rem, 9vw, 6.5rem);
@@ -351,6 +355,48 @@ th {
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+
+.stepper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stepper span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.stepper span.active {
+  background: var(--primary);
+  color: white;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.plan-card {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: left;
+}
+
+.plan-card.selected {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.2);
 }
 
 .feature-grid.compact {

@@ -11,6 +11,7 @@ export default function Stundenübersicht({ data, actions, t, employeeId }) {
         sickReports: data.sickReports,
         allowances: data.allowances,
         country: data.company.country,
+        region: data.company.region,
         month,
       }),
     [data, employeeId, month],
@@ -34,10 +35,24 @@ export default function Stundenübersicht({ data, actions, t, employeeId }) {
   }
 
   function exportPdf() {
+    const totals = rows.reduce(
+      (sum, row) => ({
+        planned: sum.planned + row.planned,
+        actual: sum.actual + row.actual,
+        overtime: sum.overtime + row.overtime,
+        night: sum.night + row.night,
+        sunday: sum.sunday + row.sunday,
+        holiday: sum.holiday + row.holiday,
+      }),
+      { planned: 0, actual: 0, overtime: 0, night: 0, sunday: 0, holiday: 0 },
+    );
     const content = [
+      '<style>body{font-family:Inter,Arial,sans-serif;color:#111827} table{width:100%;border-collapse:collapse} th,td{border:1px solid #d1d5db;padding:8px;text-align:left} th{background:#eff6ff} .muted{color:#4b5563}.totals{margin:16px 0;display:flex;gap:12px}.box{border:1px solid #d1d5db;padding:10px;border-radius:8px}</style>',
       `<h1>TopShift - ${t('hours.title')} ${month}</h1>`,
-      `<p>${t('hours.disclaimer')}</p>`,
-      '<table border="1" cellspacing="0" cellpadding="6">',
+      `<p><strong>${data.company.name}</strong> · ${t(`country.${data.company.country}`)} · ${t(`industry.${data.company.industry}`)}</p>`,
+      `<p class="muted">${t('hours.disclaimer')}</p>`,
+      `<div class="totals"><div class="box">${t('hours.planned')}: ${totals.planned.toFixed(2)}h</div><div class="box">${t('hours.actual')}: ${totals.actual.toFixed(2)}h</div><div class="box">${t('hours.overtime')}: ${totals.overtime.toFixed(2)}h</div></div>`,
+      '<table>',
       `<thead><tr>${Object.values(labels)
         .map((label) => `<th>${label}</th>`)
         .join('')}</tr></thead>`,

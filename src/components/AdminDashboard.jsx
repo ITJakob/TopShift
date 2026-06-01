@@ -3,6 +3,7 @@ import Dienstplan from './Dienstplan.jsx';
 import MitarbeiterVerwaltung from './MitarbeiterVerwaltung.jsx';
 import Schichttausch from './Schichttausch.jsx';
 import Stundenübersicht from './Stundenübersicht.jsx';
+import ReadinessPanel from './ReadinessPanel.jsx';
 import { getLegalProfile } from '../lib/gesetzePruefung.js';
 
 const tabs = [
@@ -13,6 +14,7 @@ const tabs = [
   ['hours', 'admin.hours'],
   ['sick', 'admin.sick'],
   ['notifications', 'admin.notifications'],
+  ['readiness', 'readiness.title'],
 ];
 
 export default function AdminDashboard({ data, actions, user, t }) {
@@ -46,6 +48,7 @@ export default function AdminDashboard({ data, actions, user, t }) {
       {activeTab === 'hours' && <Stundenübersicht data={data} actions={actions} t={t} />}
       {activeTab === 'sick' && <SickReports data={data} t={t} />}
       {activeTab === 'notifications' && <Notifications data={data} t={t} />}
+      {activeTab === 'readiness' && <ReadinessPanel data={data} t={t} />}
     </main>
   );
 }
@@ -92,10 +95,18 @@ function CompanySetup({ company, actions, t }) {
         </label>
         <label>
           {t('common.country')}
-          <select value={draft.country} onChange={(event) => setDraft({ ...draft, country: event.target.value })}>
+          <select value={draft.country} onChange={(event) => setDraft({ ...draft, country: event.target.value, region: defaultRegion(event.target.value) })}>
             <option value="at">{t('country.at')}</option>
             <option value="de">{t('country.de')}</option>
             <option value="ch">{t('country.ch')}</option>
+          </select>
+        </label>
+        <label>
+          {t('common.region')}
+          <select value={draft.region || defaultRegion(draft.country)} onChange={(event) => setDraft({ ...draft, region: event.target.value })}>
+            {regions[draft.country].map((region) => (
+              <option key={region} value={region}>{t(`region.${region}`)}</option>
+            ))}
           </select>
         </label>
         <label>
@@ -203,4 +214,15 @@ function Notifications({ data, t }) {
       </div>
     </section>
   );
+}
+
+
+const regions = {
+  at: ['at-wien', 'at-noe', 'at-ooe', 'at-stmk', 'at-tirol'],
+  de: ['de-by', 'de-be', 'de-hh', 'de-nw', 'de-sn'],
+  ch: ['ch-zh', 'ch-be', 'ch-bs', 'ch-ge', 'ch-ti'],
+};
+
+function defaultRegion(country) {
+  return { at: 'at-wien', de: 'de-by', ch: 'ch-zh' }[country] || 'at-wien';
 }
