@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import Schichttausch from './Schichttausch.jsx';
 import Stundenübersicht from './Stundenübersicht.jsx';
 import Abwesenheiten from './Abwesenheiten.jsx';
+import Verfuegbarkeit from './Verfuegbarkeit.jsx';
+import OffeneSchichten from './OffeneSchichten.jsx';
+import Zeiterfassung from './Zeiterfassung.jsx';
 import { getShiftHours } from '../lib/gesetzePruefung.js';
 
 export default function MitarbeiterDashboard({ data, actions, user, t }) {
@@ -64,8 +67,17 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
         <button className={activeTab === 'preferences' ? 'active' : ''} onClick={() => setActiveTab('preferences')}>
           {t('employee.preferences')}
         </button>
+        <button className={activeTab === 'availability' ? 'active' : ''} onClick={() => setActiveTab('availability')}>
+          {t('availability.title')}
+        </button>
         <button className={activeTab === 'absence' ? 'active' : ''} onClick={() => setActiveTab('absence')}>
           {t('absence.title')}
+        </button>
+        <button className={activeTab === 'openShifts' ? 'active' : ''} onClick={() => setActiveTab('openShifts')}>
+          {t('openShifts.title')}
+        </button>
+        <button className={activeTab === 'time' ? 'active' : ''} onClick={() => setActiveTab('time')}>
+          {t('time.title')}
         </button>
         <button className={activeTab === 'sick' ? 'active' : ''} onClick={() => setActiveTab('sick')}>
           {t('employee.sickToday')}
@@ -85,6 +97,9 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
       {activeTab === 'preferences' && (
         <PreferencesForm preferences={preferences} setPreferences={setPreferences} onSave={savePreferences} t={t} />
       )}
+      {activeTab === 'availability' && (
+        <Verfuegbarkeit data={data} actions={actions} employeeId={employee.id} t={t} />
+      )}
       {activeTab === 'absence' && (
         <Abwesenheiten data={data} actions={actions} employeeId={employee.id} mode="employee" t={t} />
       )}
@@ -94,6 +109,10 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
       {activeTab === 'delay' && (
         <DelayForm delay={delay} setDelay={setDelay} shifts={myShifts} onReport={reportDelay} t={t} />
       )}
+      {activeTab === 'openShifts' && (
+        <OffeneSchichten data={data} actions={actions} mode="employee" employeeId={employee.id} t={t} />
+      )}
+      {activeTab === 'time' && <Zeiterfassung data={data} actions={actions} employeeId={employee.id} t={t} />}
       {activeTab === 'swaps' && (
         <Schichttausch data={data} actions={actions} mode="employee" employeeId={employee.id} t={t} />
       )}

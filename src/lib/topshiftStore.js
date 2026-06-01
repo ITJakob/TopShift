@@ -245,6 +245,58 @@ export async function addDelayReportRemote(companyId, report) {
   );
 }
 
+
+export async function addAvailabilityRemote(companyId, entry) {
+  await throwOnError(
+    supabase.from('availability_entries').insert({
+      company_id: companyId,
+      employee_id: entry.employeeId,
+      entry_date: entry.date,
+      kind: entry.kind,
+      start_time: entry.start || null,
+      end_time: entry.end || null,
+      note: entry.note || '',
+    }),
+  );
+}
+
+export async function applyOpenShiftRemote(companyId, application) {
+  await throwOnError(
+    supabase.from('open_shift_applications').insert({
+      company_id: companyId,
+      shift_id: application.shiftId,
+      employee_id: application.employeeId,
+      status: 'pending',
+      message: application.message || '',
+    }),
+  );
+}
+
+export async function updateOpenShiftApplicationRemote(companyId, applicationId, patch) {
+  const payload = {};
+  if (patch.status) {
+    payload.status = patch.status;
+    payload.decided_at = new Date().toISOString();
+  }
+
+  await throwOnError(
+    supabase.from('open_shift_applications').update(payload).eq('company_id', companyId).eq('id', applicationId),
+  );
+}
+
+export async function addTimeEntryRemote(companyId, entry) {
+  await throwOnError(
+    supabase.from('time_entries').insert({
+      company_id: companyId,
+      employee_id: entry.employeeId,
+      shift_id: entry.shiftId || null,
+      type: entry.type,
+      occurred_at: entry.occurredAt || new Date().toISOString(),
+      note: entry.note || '',
+    }),
+  );
+}
+
 export async function addSwapRequestRemote(companyId, request) {
   await throwOnError(
     supabase.from('swap_requests').insert({
@@ -401,6 +453,9 @@ async function fetchWorkspaceState(companyId, fallbackState) {
     sickReports,
     absenceRequests,
     delayReports,
+    availabilityEntries,
+    openShiftApplications,
+    timeEntries,
     swapRequests,
     adjustments,
     notifications,
@@ -414,6 +469,9 @@ async function fetchWorkspaceState(companyId, fallbackState) {
     selectAll('sick_reports', companyId),
     selectAll('absence_requests', companyId),
     selectAll('delay_reports', companyId),
+    selectAll('availability_entries', companyId),
+    selectAll('open_shift_applications', companyId),
+    selectAll('time_entries', companyId),
     selectAll('swap_requests', companyId),
     selectAll('hour_adjustments', companyId),
     selectAll('notifications', companyId),
@@ -464,6 +522,34 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       message: report.message,
       date: report.report_date,
       createdAt: report.created_at,
+    })),
+    availabilityEntries: availabilityEntries.map((entry) => ({
+      id: entry.id,
+      employeeId: entry.employee_id,
+      date: entry.entry_date,
+      kind: entry.kind,
+      start: trimTime(entry.start_time || ''),
+      end: trimTime(entry.end_time || ''),
+      note: entry.note,
+      createdAt: entry.created_at,
+    })),
+    openShiftApplications: openShiftApplications.map((application) => ({
+      id: application.id,
+      shiftId: application.shift_id,
+      employeeId: application.employee_id,
+      status: application.status,
+      message: application.message,
+      decidedAt: application.decided_at,
+      createdAt: application.created_at,
+    })),
+    timeEntries: timeEntries.map((entry) => ({
+      id: entry.id,
+      employeeId: entry.employee_id,
+      shiftId: entry.shift_id,
+      type: entry.type,
+      occurredAt: entry.occurred_at,
+      note: entry.note,
+      createdAt: entry.created_at,
     })),
     swapRequests: swapRequests.map((request) => ({
       id: request.id,

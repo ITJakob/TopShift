@@ -5,6 +5,7 @@ import Schichttausch from './Schichttausch.jsx';
 import Stundenübersicht from './Stundenübersicht.jsx';
 import ReadinessPanel from './ReadinessPanel.jsx';
 import Abwesenheiten from './Abwesenheiten.jsx';
+import OffeneSchichten from './OffeneSchichten.jsx';
 import { getLegalProfile } from '../lib/gesetzePruefung.js';
 
 const tabs = [
@@ -15,6 +16,7 @@ const tabs = [
   ['hours', 'admin.hours'],
   ['sick', 'admin.sick'],
   ['absence', 'absence.adminTitle'],
+  ['openShifts', 'openShifts.adminTitle'],
   ['notifications', 'admin.notifications'],
   ['readiness', 'readiness.title'],
 ];
@@ -50,6 +52,7 @@ export default function AdminDashboard({ data, actions, user, t }) {
       {activeTab === 'hours' && <Stundenübersicht data={data} actions={actions} t={t} />}
       {activeTab === 'sick' && <SickReports data={data} t={t} />}
       {activeTab === 'absence' && <Abwesenheiten data={data} actions={actions} mode="admin" t={t} />}
+      {activeTab === 'openShifts' && <OffeneSchichten data={data} actions={actions} mode="admin" t={t} />}
       {activeTab === 'notifications' && <Notifications data={data} t={t} />}
       {activeTab === 'readiness' && <ReadinessPanel data={data} t={t} />}
     </main>

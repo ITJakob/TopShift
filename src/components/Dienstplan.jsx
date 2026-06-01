@@ -37,6 +37,9 @@ export default function Dienstplan({ data, actions, user, t }) {
   const [message, setMessage] = useState('');
 
   const selectedEmployee = data.employees.find((employee) => employee.id === form.employeeId);
+  const availabilityWarning = data.availabilityEntries?.find(
+    (entry) => entry.employeeId === form.employeeId && entry.date === form.date && entry.kind === 'unavailable',
+  );
   const validation = useMemo(
     () =>
       form.employeeId
@@ -188,6 +191,12 @@ export default function Dienstplan({ data, actions, user, t }) {
         {selectedEmployee?.preferences && (
           <div className="warning-banner">
             <strong>{t('schedule.preferenceVisible')}:</strong> {selectedEmployee.preferences}
+          </div>
+        )}
+
+        {availabilityWarning && (
+          <div className="warning-banner">
+            <strong>{t('availability.unavailable')}:</strong> {availabilityWarning.note || t('availability.planningWarning')}
           </div>
         )}
 

@@ -41,6 +41,7 @@ export function calculateMonthlyHours({
   sickReports = [],
   vacationDays = [],
   absenceRequests = [],
+  timeEntries = [],
   allowances = {},
   country = 'at',
   region = '',
@@ -58,7 +59,7 @@ export function calculateMonthlyHours({
     const planned = employeeShifts.reduce((sum, shift) => sum + getShiftHours(shift), 0);
     const actual = employeeShifts
       .filter((shift) => shift.actual !== false)
-      .reduce((sum, shift) => sum + getShiftHours(shift), 0);
+      .reduce((sum, shift) => sum + getActualShiftHours(shift, timeEntries), 0);
     const night = employeeShifts.reduce((sum, shift) => sum + overlapsNight(shift), 0);
     const sunday = employeeShifts.reduce(
       (sum, shift) => sum + countHoursByDayPredicate(shift, (date) => date.getDay() === 0),
@@ -141,6 +142,29 @@ export function downloadTextFile(filename, content, mime = 'text/plain') {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function getActualShiftHours(shift, timeEntries) {
+  const entries = timeEntries
+    .filter((entry) => entry.shiftId === shift.id)
+    .sort((left, right) => new Date(left.occurredAt) - new Date(right.occurredAt));
+  const start = entries.find((entry) => entry.type === 'start');
+  const end = [...entries].reverse().find((entry) => entry.type === 'end');
+  if (!start || !end) {
+    return getShiftHours(shift);
+  }
+
+  const pauseStarts = entries.filter((entry) => entry.type === 'pause_start');
+  const pauseEnds = entries.filter((entry) => entry.type === 'pause_end');
+  const pauseMs = pauseStarts.reduce((sum, pauseStart, index) => {
+    const pauseEnd = pauseEnds[index];
+    if (!pauseEnd) {
+      return sum;
+    }
+    return sum + Math.max(0, new Date(pauseEnd.occurredAt) - new Date(pauseStart.occurredAt));
+  }, 0);
+
+  return Math.max(0, (new Date(end.occurredAt) - new Date(start.occurredAt) - pauseMs) / (60 * 60 * 1000));
 }
 
 function countMonthDaysInRange(startDate, endDate, month) {

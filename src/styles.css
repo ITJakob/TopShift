@@ -224,6 +224,24 @@ th {
   gap: 0.45rem;
 }
 
+
+.time-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.status.available,
+.status.preferred {
+  background: rgba(74, 222, 128, 0.16);
+  color: var(--success);
+}
+
+.status.unavailable {
+  background: rgba(248, 113, 113, 0.16);
+  color: var(--danger);
+}
+
 .invite-actions {
   display: flex;
   flex-wrap: wrap;

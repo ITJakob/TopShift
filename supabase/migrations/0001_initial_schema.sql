@@ -13,6 +13,8 @@ create type public.shift_type as enum ('early', 'mid', 'late', 'night', 'onCall'
 create type public.swap_status as enum ('pending', 'approved', 'rejected');
 create type public.absence_type as enum ('vacation', 'timeOff', 'care', 'training', 'unpaid', 'other');
 create type public.request_status as enum ('pending', 'approved', 'rejected');
+create type public.availability_kind as enum ('available', 'preferred', 'unavailable');
+create type public.time_entry_type as enum ('start', 'pause_start', 'pause_end', 'end');
 create type public.notification_type as enum ('published', 'shift', 'swap', 'sick', 'legal');
 create type public.subscription_status as enum ('trialing', 'active', 'past_due', 'canceled', 'incomplete');
 
@@ -163,6 +165,46 @@ create table public.delay_reports (
   created_at timestamptz not null default now()
 );
 
+
+create table public.availability_entries (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  entry_date date not null,
+  kind public.availability_kind not null default 'available',
+  start_time time,
+  end_time time,
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (employee_id, entry_date, kind, start_time, end_time)
+);
+
+create table public.open_shift_applications (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  shift_id uuid not null references public.shifts(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  status public.request_status not null default 'pending',
+  message text not null default '',
+  decided_by uuid references public.profiles(id) on delete set null,
+  decided_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (shift_id, employee_id)
+);
+
+create table public.time_entries (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
+  shift_id uuid references public.shifts(id) on delete set null,
+  type public.time_entry_type not null,
+  occurred_at timestamptz not null default now(),
+  note text not null default '',
+  created_at timestamptz not null default now()
+);
+
 create table public.swap_requests (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -276,6 +318,10 @@ create trigger employees_plan_limit before insert on public.employees
 create trigger shifts_updated_at before update on public.shifts
   for each row execute function public.touch_updated_at();
 create trigger absence_requests_updated_at before update on public.absence_requests
+  for each row execute function public.touch_updated_at();
+create trigger availability_entries_updated_at before update on public.availability_entries
+  for each row execute function public.touch_updated_at();
+create trigger open_shift_applications_updated_at before update on public.open_shift_applications
   for each row execute function public.touch_updated_at();
 create trigger swap_requests_updated_at before update on public.swap_requests
   for each row execute function public.touch_updated_at();
@@ -416,6 +462,9 @@ alter table public.shifts enable row level security;
 alter table public.sick_reports enable row level security;
 alter table public.absence_requests enable row level security;
 alter table public.delay_reports enable row level security;
+alter table public.availability_entries enable row level security;
+alter table public.open_shift_applications enable row level security;
+alter table public.time_entries enable row level security;
 alter table public.swap_requests enable row level security;
 alter table public.hour_adjustments enable row level security;
 alter table public.notifications enable row level security;
@@ -540,6 +589,60 @@ create policy "members read own delay reports" on public.delay_reports
     )
   );
 
+create policy "members manage own availability" on public.availability_entries
+  for all using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = availability_entries.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  ) with check (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = availability_entries.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+
+create policy "members read open shift applications" on public.open_shift_applications
+  for select using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = open_shift_applications.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+create policy "employees create own open shift applications" on public.open_shift_applications
+  for insert with check (
+    exists (
+      select 1 from public.employees
+      where employees.id = open_shift_applications.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+create policy "admins update open shift applications" on public.open_shift_applications
+  for update using (public.is_company_admin(company_id)) with check (public.is_company_admin(company_id));
+
+create policy "members manage own time entries" on public.time_entries
+  for all using (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = time_entries.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  ) with check (
+    public.is_company_admin(company_id)
+    or exists (
+      select 1 from public.employees
+      where employees.id = time_entries.employee_id
+        and employees.profile_id = auth.uid()
+    )
+  );
+
 create policy "members read swaps" on public.swap_requests
   for select using (
     public.is_company_admin(company_id)
@@ -615,6 +718,10 @@ create index shifts_company_date_idx on public.shifts(company_id, shift_date);
 create index sick_reports_company_date_idx on public.sick_reports(company_id, report_date);
 create index absence_requests_company_status_idx on public.absence_requests(company_id, status, start_date);
 create index delay_reports_company_date_idx on public.delay_reports(company_id, report_date);
+create index availability_entries_company_date_idx on public.availability_entries(company_id, entry_date);
+create index open_shift_applications_company_shift_idx on public.open_shift_applications(company_id, shift_id, status);
+create index time_entries_company_employee_idx on public.time_entries(company_id, employee_id, occurred_at desc);
+
 
 create index swap_requests_company_status_idx on public.swap_requests(company_id, status);
 create index notifications_recipient_idx on public.notifications(recipient_profile_id, created_at desc);

@@ -11,7 +11,10 @@ import { supabase } from './lib/supabase.js';
 import {
   acceptInvitationRemote,
   addAbsenceRequestRemote,
+  addAvailabilityRemote,
   addDelayReportRemote,
+  addTimeEntryRemote,
+  applyOpenShiftRemote,
   addEmployeeRemote,
   addSickReportRemote,
   addSwapRequestRemote,
@@ -25,6 +28,7 @@ import {
   saveShiftRemote,
   shouldUseRemote,
   updateAbsenceRequestRemote,
+  updateOpenShiftApplicationRemote,
   updateEmployeeRemote,
   updateSwapRequestRemote,
 } from './lib/topshiftStore.js';
@@ -121,6 +125,9 @@ const defaultState = {
   sickReports: [],
   absenceRequests: [],
   delayReports: [],
+  availabilityEntries: [],
+  openShiftApplications: [],
+  timeEntries: [],
   swapRequests: [],
   allowances: {},
   notifications: [],
@@ -481,6 +488,87 @@ export default function App() {
             await addDelayReportRemote(current.company.id, created);
             await createNotificationRemote(current.company.id, 'shift', notification.textKey);
           });
+          return next;
+        }),
+      addAvailability: (entry) =>
+        setState((current) => {
+          const created = {
+            ...entry,
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            availabilityEntries: [created, ...current.availabilityEntries],
+          };
+          runRemote(() => addAvailabilityRemote(current.company.id, created));
+          return next;
+        }),
+      applyOpenShift: (application) =>
+        setState((current) => {
+          const created = {
+            ...application,
+            id: crypto.randomUUID(),
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+          };
+          const notification = {
+            id: crypto.randomUUID(),
+            type: 'shift',
+            textKey: 'notifications.openShift',
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            openShiftApplications: [created, ...current.openShiftApplications],
+            notifications: [notification, ...current.notifications],
+          };
+          runRemote(async () => {
+            await applyOpenShiftRemote(current.company.id, created);
+            await createNotificationRemote(current.company.id, 'shift', notification.textKey);
+          });
+          return next;
+        }),
+      updateOpenShiftApplication: (applicationId, patch) =>
+        setState((current) => {
+          const application = current.openShiftApplications.find((item) => item.id === applicationId);
+          let shifts = current.shifts;
+          if (application && patch.status === 'approved') {
+            shifts = current.shifts.map((shift) =>
+              shift.id === application.shiftId ? { ...shift, employeeId: application.employeeId, status: 'published' } : shift,
+            );
+          }
+          const next = {
+            ...current,
+            shifts,
+            openShiftApplications: current.openShiftApplications.map((item) =>
+              item.id === applicationId ? { ...item, ...patch } : item,
+            ),
+          };
+          runRemote(async () => {
+            await updateOpenShiftApplicationRemote(current.company.id, applicationId, patch);
+            if (application && patch.status === 'approved') {
+              const shift = current.shifts.find((item) => item.id === application.shiftId);
+              if (shift) {
+                await saveShiftRemote(current.company, { ...shift, employeeId: application.employeeId, status: 'published' }, user.id);
+              }
+            }
+          });
+          return next;
+        }),
+      addTimeEntry: (entry) =>
+        setState((current) => {
+          const created = {
+            ...entry,
+            id: crypto.randomUUID(),
+            occurredAt: entry.occurredAt || new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          };
+          const next = {
+            ...current,
+            timeEntries: [created, ...current.timeEntries],
+          };
+          runRemote(() => addTimeEntryRemote(current.company.id, created));
           return next;
         }),
       addSwapRequest: (request) =>

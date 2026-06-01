@@ -10,6 +10,7 @@ export default function Stundenübersicht({ data, actions, t, employeeId }) {
         shifts: data.shifts,
         sickReports: data.sickReports,
         absenceRequests: data.absenceRequests || [],
+        timeEntries: data.timeEntries || [],
         allowances: data.allowances,
         country: data.company.country,
         region: data.company.region,
