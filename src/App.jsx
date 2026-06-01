@@ -39,10 +39,10 @@ const defaultCompany = {
   name: 'TopShift Demo GmbH',
   logo: '',
   country: 'at',
-  industry: 'general',
+  industry: 'hospitality',
   region: 'at-wien',
-  locations: ['Wien Zentrale'],
-  plan: 'free',
+  locations: ['Wien Zentrale', 'Salzburg Hotel', 'Graz Pop-up'],
+  plan: 'business',
   onboardingComplete: true,
 };
 
@@ -89,6 +89,20 @@ const defaultEmployees = [
     maxNightShifts: 0,
     otherNotes: 'Jugendlich, strengere Regeln aktiv.',
   },
+  {
+    id: 'emp-4',
+    name: 'Samir Novak',
+    email: 'samir.novak@example.com',
+    role: 'employee',
+    contract: 'fullTime',
+    weeklyTarget: 38.5,
+    isMinor: false,
+    preferences: 'Bevorzugt Spätschichten, keine Dienstage.',
+    preferredTimes: 'Spät oder Nacht',
+    avoidDays: 'Dienstag wegen Ausbildung',
+    maxNightShifts: 4,
+    otherNotes: 'Kann offene Schichten am Wochenende übernehmen.',
+  },
 ];
 
 const defaultShifts = [
@@ -107,31 +121,107 @@ const defaultShifts = [
   {
     id: 'shift-2',
     employeeId: 'emp-2',
-    date: todayOffset(2),
+    date: todayOffset(1),
     start: '14:00',
     end: '22:00',
     breakMinutes: 30,
     type: 'late',
     location: 'Wien Zentrale',
-    status: 'draft',
+    status: 'published',
     notes: '',
   },
+  {
+    id: 'shift-3',
+    employeeId: 'emp-4',
+    date: todayOffset(2),
+    start: '22:00',
+    end: '06:00',
+    breakMinutes: 45,
+    type: 'night',
+    location: 'Salzburg Hotel',
+    status: 'published',
+    notes: 'Demo-Nachtschicht mit Zuschlagsprüfung.',
+  },
+  {
+    id: 'shift-4',
+    employeeId: '',
+    date: todayOffset(3),
+    start: '10:00',
+    end: '18:30',
+    breakMinutes: 30,
+    type: 'mid',
+    location: 'Graz Pop-up',
+    status: 'unassigned',
+    notes: 'Offene Schicht zum Bewerben.',
+  },
+  {
+    id: 'shift-5',
+    employeeId: 'emp-1',
+    date: todayOffset(5),
+    start: '09:00',
+    end: '17:30',
+    breakMinutes: 30,
+    type: 'early',
+    location: 'Wien Zentrale',
+    status: 'draft',
+    notes: 'Entwurf, für Mitarbeiter noch nicht sichtbar.',
+  },
+  {
+    id: 'shift-6',
+    employeeId: 'emp-3',
+    date: todayOffset(4),
+    start: '13:00',
+    end: '18:00',
+    breakMinutes: 15,
+    type: 'mid',
+    location: 'Wien Zentrale',
+    status: 'published',
+    notes: 'Jugendlicher Mitarbeiter.',
+  },
 ];
+
 
 const defaultState = {
   company: defaultCompany,
   employees: defaultEmployees,
   shifts: defaultShifts,
-  sickReports: [],
-  absenceRequests: [],
-  delayReports: [],
-  availabilityEntries: [],
-  openShiftApplications: [],
-  timeEntries: [],
-  swapRequests: [],
-  allowances: {},
-  notifications: [],
-  invitations: [],
+  sickReports: [
+    { id: 'sick-1', employeeId: 'emp-2', date: todayOffset(-1), duration: '2 Tage', createdAt: new Date().toISOString() },
+  ],
+  absenceRequests: [
+    { id: 'abs-1', employeeId: 'emp-1', type: 'vacation', startDate: todayOffset(8), endDate: todayOffset(10), reason: 'Familienurlaub', status: 'pending', createdAt: new Date().toISOString() },
+    { id: 'abs-2', employeeId: 'emp-4', type: 'training', startDate: todayOffset(-3), endDate: todayOffset(-3), reason: 'Barista-Schulung', status: 'approved', createdAt: new Date().toISOString() },
+  ],
+  delayReports: [
+    { id: 'delay-1', employeeId: 'emp-1', shiftId: 'shift-1', delayMinutes: 20, message: 'U-Bahn-Störung', date: todayOffset(1), createdAt: new Date().toISOString() },
+  ],
+  availabilityEntries: [
+    { id: 'av-1', employeeId: 'emp-1', date: todayOffset(2), kind: 'unavailable', start: '', end: '', note: 'Arzttermin', createdAt: new Date().toISOString() },
+    { id: 'av-2', employeeId: 'emp-4', date: todayOffset(3), kind: 'preferred', start: '10:00', end: '20:00', note: 'Kann offene Schicht übernehmen', createdAt: new Date().toISOString() },
+    { id: 'av-3', employeeId: 'emp-2', date: todayOffset(3), kind: 'available', start: '08:00', end: '16:00', note: '', createdAt: new Date().toISOString() },
+  ],
+  openShiftApplications: [
+    { id: 'open-app-1', shiftId: 'shift-4', employeeId: 'emp-4', status: 'pending', message: 'Ich kann die Pop-up-Schicht übernehmen.', createdAt: new Date().toISOString() },
+  ],
+  timeEntries: [
+    { id: 'time-1', employeeId: 'emp-1', shiftId: 'shift-1', type: 'start', occurredAt: `${todayOffset(1)}T08:03:00`, createdAt: new Date().toISOString() },
+    { id: 'time-2', employeeId: 'emp-1', shiftId: 'shift-1', type: 'pause_start', occurredAt: `${todayOffset(1)}T12:00:00`, createdAt: new Date().toISOString() },
+    { id: 'time-3', employeeId: 'emp-1', shiftId: 'shift-1', type: 'pause_end', occurredAt: `${todayOffset(1)}T12:31:00`, createdAt: new Date().toISOString() },
+    { id: 'time-4', employeeId: 'emp-1', shiftId: 'shift-1', type: 'end', occurredAt: `${todayOffset(1)}T16:37:00`, createdAt: new Date().toISOString() },
+  ],
+  swapRequests: [
+    { id: 'swap-1', requesterId: 'emp-1', ownShiftId: 'shift-1', targetEmployeeId: 'emp-4', targetShiftId: '', peerStatus: 'pending', status: 'pending', message: 'Kannst du meinen Frühdienst übernehmen?', createdAt: new Date().toISOString() },
+    { id: 'swap-2', requesterId: 'emp-2', ownShiftId: 'shift-2', targetEmployeeId: 'emp-1', targetShiftId: 'shift-1', peerStatus: 'approved', status: 'pending', message: 'Tausch Spät gegen Früh?', createdAt: new Date().toISOString() },
+  ],
+  allowances: { 'emp-1': 'Sonntagszuschlag prüfen', 'emp-4': 'Nachtzuschlag' },
+  notifications: [
+    { id: 'note-1', type: 'swap', textKey: 'notifications.swap', createdAt: new Date().toISOString() },
+    { id: 'note-2', type: 'sick', textKey: 'notifications.sick', createdAt: new Date().toISOString() },
+    { id: 'note-3', type: 'shift', textKey: 'notifications.openShift', createdAt: new Date().toISOString() },
+  ],
+  invitations: [
+    { id: 'inv-1', employeeId: 'emp-3', email: 'mia.huber@example.com', role: 'employee', token: 'demo-invite-mia', status: 'pending', expiresAt: todayOffset(14), createdAt: new Date().toISOString() },
+  ],
   templates: [
     { id: 'tpl-early', name: 'Früh 08-16:30', start: '08:00', end: '16:30', breakMinutes: 30, type: 'early' },
     { id: 'tpl-night', name: 'Nacht 22-06', start: '22:00', end: '06:00', breakMinutes: 45, type: 'night' },
@@ -692,7 +782,14 @@ export default function App() {
         />
       ) : !user ? (
         isDemoAdminPage ? (
-          <DemoAdminLogin t={t} onAuthenticated={setUser} />
+          <DemoAdminLogin
+            t={t}
+            onAuthenticated={(demoUser) => {
+              localStorage.removeItem('topshift-state');
+              setState(defaultState);
+              setUser(demoUser);
+            }}
+          />
         ) : (
           <Auth t={t} onAuthenticated={setUser} />
         )
