@@ -5,12 +5,13 @@ import Abwesenheiten from './Abwesenheiten.jsx';
 import Verfuegbarkeit from './Verfuegbarkeit.jsx';
 import OffeneSchichten from './OffeneSchichten.jsx';
 import Zeiterfassung from './Zeiterfassung.jsx';
+import MitarbeiterHome from './MitarbeiterHome.jsx';
 import { getShiftHours } from '../lib/gesetzePruefung.js';
 
 export default function MitarbeiterDashboard({ data, actions, user, t }) {
   const employeeId = user.employeeId || user.id;
   const employee = data.employees.find((item) => item.id === employeeId) || data.employees[0];
-  const [activeTab, setActiveTab] = useState('schedule');
+  const [activeTab, setActiveTab] = useState('home');
   const [preferences, setPreferences] = useState({
     preferredTimes: employee.preferredTimes || '',
     avoidDays: employee.avoidDays || '',
@@ -61,6 +62,9 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
       </section>
 
       <nav className="tabbar">
+        <button className={activeTab === 'home' ? 'active' : ''} onClick={() => setActiveTab('home')}>
+          {t('employee.home')}
+        </button>
         <button className={activeTab === 'schedule' ? 'active' : ''} onClick={() => setActiveTab('schedule')}>
           {t('employee.mySchedule')}
         </button>
@@ -93,6 +97,7 @@ export default function MitarbeiterDashboard({ data, actions, user, t }) {
         </button>
       </nav>
 
+      {activeTab === 'home' && <MitarbeiterHome data={data} employee={employee} setActiveTab={setActiveTab} t={t} />}
       {activeTab === 'schedule' && <MySchedule shifts={myShifts} t={t} />}
       {activeTab === 'preferences' && (
         <PreferencesForm preferences={preferences} setPreferences={setPreferences} onSave={savePreferences} t={t} />

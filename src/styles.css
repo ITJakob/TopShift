@@ -478,6 +478,69 @@ th {
   gap: 1rem;
 }
 
+.insights-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hero-summary {
+  display: grid;
+  gap: 1rem;
+}
+
+.danger-metric {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.workload-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.workload-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 1.4fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.workload-row span {
+  color: var(--muted);
+}
+
+.progress-track {
+  height: 0.7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--success), var(--primary));
+}
+
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  background: rgba(17, 24, 39, 0.72);
+  box-shadow: none;
+  text-align: left;
+}
+
+.action-row span {
+  color: var(--muted);
+}
+
+.employee-filters {
+  margin-bottom: 1rem;
+}
+
+
 .two-columns {
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
 }
@@ -847,6 +910,7 @@ th {
   .auth-layout,
   .dashboard-header,
   .two-columns,
+  .insights-layout,
   .schedule-layout,
   .swap-board {
     grid-template-columns: 1fr;
@@ -887,6 +951,7 @@ th {
 
   .inline-form,
   .button-row,
+  .workload-row,
   .metric-grid {
     align-items: stretch;
     flex-direction: column;

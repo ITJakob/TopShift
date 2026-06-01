@@ -7,9 +7,11 @@ import ReadinessPanel from './ReadinessPanel.jsx';
 import Abwesenheiten from './Abwesenheiten.jsx';
 import OffeneSchichten from './OffeneSchichten.jsx';
 import DemoTestCenter from './DemoTestCenter.jsx';
+import AdminInsights from './AdminInsights.jsx';
 import { getLegalProfile } from '../lib/gesetzePruefung.js';
 
 const tabs = [
+  ['insights', 'insights.title'],
   ['setup', 'admin.companySetup'],
   ['schedule', 'admin.schedule'],
   ['employees', 'admin.employees'],
@@ -24,7 +26,7 @@ const tabs = [
 ];
 
 export default function AdminDashboard({ data, actions, user, t }) {
-  const [activeTab, setActiveTab] = useState('schedule');
+  const [activeTab, setActiveTab] = useState('insights');
 
   return (
     <main className="dashboard">
@@ -47,6 +49,7 @@ export default function AdminDashboard({ data, actions, user, t }) {
         ))}
       </nav>
 
+      {activeTab === 'insights' && <AdminInsights data={data} t={t} />}
       {activeTab === 'setup' && <CompanySetup company={data.company} actions={actions} t={t} />}
       {activeTab === 'schedule' && <Dienstplan data={data} actions={actions} user={user} t={t} />}
       {activeTab === 'employees' && <MitarbeiterVerwaltung data={data} actions={actions} t={t} />}

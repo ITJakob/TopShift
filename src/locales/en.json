@@ -353,5 +353,22 @@
   "demoCenter.timeTracking.title": "Time tracking",
   "demoCenter.timeTracking.text": "Start as Anna and record start, break, and end. Then check hours overview.",
   "demoCenter.invite.title": "Invitation",
-  "demoCenter.invite.text": "Copy Mia’s demo invitation link in employee management."
+  "demoCenter.invite.text": "Copy Mia’s demo invitation link in employee management.",
+  "insights.eyebrow": "Management overview",
+  "insights.title": "Insights",
+  "insights.publishedShifts": "Published shifts",
+  "insights.plannedHours": "Planned hours",
+  "insights.draftShifts": "Drafts",
+  "insights.legalIssues": "Compliance notes",
+  "insights.priorities": "Priorities",
+  "insights.pendingWork": "Open / to review",
+  "insights.compliance": "Legal validation in plan",
+  "insights.workload": "Team workload",
+  "employee.home": "Home",
+  "employee.welcome": "Welcome, {{name}}",
+  "employee.upcomingShifts": "Upcoming shifts",
+  "employee.quickActions": "Quick actions",
+  "employee.openSection": "Open section",
+  "employees.search": "Search employees",
+  "employees.allContracts": "All contracts"
 }

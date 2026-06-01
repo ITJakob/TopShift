@@ -16,7 +16,14 @@ const emptyEmployee = {
 
 export default function MitarbeiterVerwaltung({ data, actions, t }) {
   const [form, setForm] = useState(emptyEmployee);
+  const [search, setSearch] = useState('');
+  const [contractFilter, setContractFilter] = useState('all');
   const isFreeLimitReached = data.company.plan === 'free' && data.employees.length >= 5;
+  const filteredEmployees = data.employees.filter((employee) => {
+    const matchesSearch = `${employee.name} ${employee.email}`.toLowerCase().includes(search.toLowerCase());
+    const matchesContract = contractFilter === 'all' || employee.contract === contractFilter;
+    return matchesSearch && matchesContract;
+  });
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -101,6 +108,15 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
           <h2>{t('employees.title')}</h2>
           <span className="chip">{t(`plan.${data.company.plan}`)}</span>
         </div>
+        <div className="inline-form employee-filters">
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('employees.search')} />
+          <select value={contractFilter} onChange={(event) => setContractFilter(event.target.value)}>
+            <option value="all">{t('employees.allContracts')}</option>
+            <option value="fullTime">{t('employees.fullTime')}</option>
+            <option value="partTime">{t('employees.partTime')}</option>
+            <option value="mini">{t('employees.mini')}</option>
+          </select>
+        </div>
         <div className="employee-list">
           {data.invitations?.length > 0 && (
             <div className="info-banner">
@@ -108,7 +124,7 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
               {data.invitations.filter((invite) => invite.status === 'pending').length} {t('common.pending')}
             </div>
           )}
-          {data.employees.map((employee) => (
+          {filteredEmployees.map((employee) => (
             <article className="employee-card" key={employee.id}>
               <div>
                 <strong>{employee.name}</strong>

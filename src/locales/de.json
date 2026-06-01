@@ -353,5 +353,22 @@
   "demoCenter.timeTracking.title": "Zeiterfassung",
   "demoCenter.timeTracking.text": "Starte als Anna und buche Start, Pause und Ende. Prüfe danach die Stundenübersicht.",
   "demoCenter.invite.title": "Einladung",
-  "demoCenter.invite.text": "Kopiere in der Mitarbeiterverwaltung den Demo-Einladungslink für Mia."
+  "demoCenter.invite.text": "Kopiere in der Mitarbeiterverwaltung den Demo-Einladungslink für Mia.",
+  "insights.eyebrow": "Management-Übersicht",
+  "insights.title": "Insights",
+  "insights.publishedShifts": "Veröffentlichte Schichten",
+  "insights.plannedHours": "Geplante Stunden",
+  "insights.draftShifts": "Entwürfe",
+  "insights.legalIssues": "Compliance-Hinweise",
+  "insights.priorities": "Prioritäten",
+  "insights.pendingWork": "Offen / zu prüfen",
+  "insights.compliance": "Rechtsprüfung im Plan",
+  "insights.workload": "Team-Auslastung",
+  "employee.home": "Start",
+  "employee.welcome": "Willkommen, {{name}}",
+  "employee.upcomingShifts": "Kommende Schichten",
+  "employee.quickActions": "Schnellaktionen",
+  "employee.openSection": "Bereich öffnen",
+  "employees.search": "Mitarbeiter suchen",
+  "employees.allContracts": "Alle Beschäftigungen"
 }
