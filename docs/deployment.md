@@ -2,12 +2,14 @@
 
 ## Vercel
 
-Set these environment variables in Vercel:
+Set these environment variables in Vercel Project Settings > Environment Variables:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Build command and output directory are defined in `vercel.json`.
+Important for Vite: `VITE_*` variables are embedded at build time. If a variable is added or changed after a deployment, trigger a new deployment. Also verify the variable is enabled for the exact scope you are viewing (`Production` and/or `Preview`).
+
+Build command and output directory are defined in `vercel.json`. The build runs `scripts/validate-env.mjs` and fails on Vercel if `VITE_SUPABASE_ANON_KEY` is missing, so broken auth bundles are not deployed silently.
 
 ## Supabase
 

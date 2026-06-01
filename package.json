@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run && npm run build",
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/validate-env.mjs && vite build",
     "preview": "vite preview"
   },
   "repository": {

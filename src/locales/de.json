@@ -56,7 +56,7 @@
   "auth.signUp": "Registrieren",
   "auth.demoAdmin": "Demo als Admin starten",
   "auth.demoEmployee": "Demo als Mitarbeiter starten",
-  "auth.supabaseMissing": "Supabase ist vorbereitet. Hinterlege VITE_SUPABASE_ANON_KEY in der Umgebung, um echte Authentifizierung zu aktivieren.",
+  "auth.supabaseMissing": "Supabase ist in diesem Build nicht aktiv. Prüfe in Vercel die Variable VITE_SUPABASE_ANON_KEY für Production/Preview und deploye danach erneut.",
   "auth.error": "Authentifizierung fehlgeschlagen. Bitte prüfe deine Eingaben.",
   "nav.adminDashboard": "Admin",
   "nav.employeeDashboard": "Mitarbeiter",

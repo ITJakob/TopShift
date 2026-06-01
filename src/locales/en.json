@@ -56,7 +56,7 @@
   "auth.signUp": "Sign up",
   "auth.demoAdmin": "Start demo as admin",
   "auth.demoEmployee": "Start demo as employee",
-  "auth.supabaseMissing": "Supabase is prepared. Add VITE_SUPABASE_ANON_KEY to the environment to enable real authentication.",
+  "auth.supabaseMissing": "Supabase is not active in this build. Check VITE_SUPABASE_ANON_KEY in Vercel for Production/Preview and redeploy afterwards.",
   "auth.error": "Authentication failed. Please check your input.",
   "nav.adminDashboard": "Admin",
   "nav.employeeDashboard": "Employee",
