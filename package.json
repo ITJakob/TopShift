@@ -1,0 +1,33 @@
+{
+  "name": "topshift",
+  "version": "1.0.0",
+  "description": "TopShift B2B shift management app",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run build",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ITJakob/TopShift.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ITJakob/TopShift/issues"
+  },
+  "homepage": "https://github.com/ITJakob/TopShift#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.0.16"
+  }
+}
