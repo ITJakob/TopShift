@@ -141,6 +141,7 @@ export default function MitarbeiterVerwaltung({ data, actions, t }) {
                 return (
                   <small className="muted invite-line">
                     {t('employees.inviteStatus')}: {invitation?.status || 'local'}
+                    {invitation?.emailedAt && ` · ${t('employees.emailSent')}`}
                     {invitation?.token && invitation.status === 'pending' && (
                       <span className="invite-actions">
                         <button className="secondary-button tiny-button" onClick={() => copyInvite(invitation)}>

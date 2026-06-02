@@ -90,6 +90,7 @@ create table public.employee_invitations (
   token uuid not null default gen_random_uuid(),
   status text not null default 'pending' check (status in ('pending', 'accepted', 'revoked')),
   expires_at timestamptz not null default now() + interval '14 days',
+  emailed_at timestamptz,
   accepted_at timestamptz,
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),

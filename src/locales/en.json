@@ -374,5 +374,6 @@
   "common.loading": "Loading...",
   "activity.eyebrow": "Audit & history",
   "activity.title": "Activity",
-  "activity.empty": "No activity yet."
+  "activity.empty": "No activity yet.",
+  "employees.emailSent": "Email sent"
 }

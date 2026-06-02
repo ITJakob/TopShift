@@ -519,12 +519,16 @@ th {
   margin-bottom: 1rem;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabbar button {
   flex: 0 0 auto;
   border: 1px solid var(--border);
   background: var(--surface);
+  scroll-snap-align: start;
 }
 
 .grid {
@@ -757,6 +761,8 @@ th {
 .calendar-grid.week {
   grid-template-columns: repeat(7, minmax(150px, 1fr));
   overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
 }
 
 .calendar-grid.month {
@@ -767,6 +773,8 @@ th {
 
 .calendar-day {
   min-height: 180px;
+  scroll-snap-align: start;
+  touch-action: manipulation;
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: rgba(8, 13, 24, 0.58);

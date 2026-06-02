@@ -35,4 +35,6 @@ Der interne Demo-Modus ist unter `/demo-admin` erreichbar. Beim Start wird der l
 ## Mobile/PWA
 
 TopShift liefert ein Web-App-Manifest und einen kleinen Service Worker fuer App-aehnliches Verhalten und Basis-Offline-Fallbacks aus.
+- Supabase Live-Test: `docs/supabase-live-test.md`
+- Smoke-Test SQL: `supabase/smoke_test.sql`
 

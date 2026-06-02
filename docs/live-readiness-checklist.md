@@ -30,6 +30,7 @@
 ## 4. Notifications
 
 - Deploy `send-notification`.
+- Deploy `send-invitation`.
 - Add `SUPABASE_SERVICE_ROLE_KEY`.
 - Add provider key such as `RESEND_API_KEY`.
 - Replace the placeholder delivery block with real provider API call.
@@ -43,7 +44,7 @@
   - `topshift_plan=business`
   - `company_id=<uuid>` on checkout/session/subscription metadata
 - Deploy `create-checkout-session`.
-- Enable signature verification in `stripe-webhook` before production use.
+- Confirm Stripe signature verification is active in `stripe-webhook`.
 - Confirm server-side plan limits using the `subscriptions` table, not only frontend checks.
 
 ## 6. Product QA

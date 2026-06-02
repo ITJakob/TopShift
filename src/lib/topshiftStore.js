@@ -110,8 +110,9 @@ export async function addEmployeeRemote(companyId, employee) {
     throw error;
   }
 
-  await throwOnError(
-    supabase.from('employee_invitations').upsert(
+  const { data: invitation, error: invitationError } = await supabase
+    .from('employee_invitations')
+    .upsert(
       {
         company_id: companyId,
         employee_id: data.id,
@@ -121,8 +122,28 @@ export async function addEmployeeRemote(companyId, employee) {
         status: 'pending',
       },
       { onConflict: 'company_id,email,status' },
-    ),
-  );
+    )
+    .select('id')
+    .single();
+
+  if (invitationError) {
+    throw invitationError;
+  }
+
+  await sendInvitationRemote(invitation.id);
+}
+
+export async function sendInvitationRemote(invitationId) {
+  if (!supabaseConfigured || !supabase || !invitationId) {
+    return;
+  }
+
+  const { error } = await supabase.functions.invoke('send-invitation', {
+    body: { invitationId },
+  });
+  if (error) {
+    throw error;
+  }
 }
 
 export async function updateEmployeeRemote(companyId, employeeId, patch) {
@@ -578,6 +599,7 @@ async function fetchWorkspaceState(companyId, fallbackState) {
       token: invitation.token,
       status: invitation.status,
       expiresAt: invitation.expires_at,
+      emailedAt: invitation.emailed_at,
       createdAt: invitation.created_at,
     })),
     templates: templates.map((template) => ({

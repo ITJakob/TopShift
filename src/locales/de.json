@@ -374,5 +374,6 @@
   "common.loading": "Wird geladen...",
   "activity.eyebrow": "Audit & Verlauf",
   "activity.title": "Aktivitäten",
-  "activity.empty": "Noch keine Aktivitäten vorhanden."
+  "activity.empty": "Noch keine Aktivitäten vorhanden.",
+  "employees.emailSent": "E-Mail gesendet"
 }

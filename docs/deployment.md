@@ -29,6 +29,7 @@ Build command and output directory are defined in `vercel.json`. The build runs 
 
    ```bash
    supabase functions deploy send-notification
+   supabase functions deploy send-invitation
    supabase functions deploy stripe-webhook
    supabase functions deploy create-checkout-session
    ```
@@ -47,3 +48,7 @@ Build command and output directory are defined in `vercel.json`. The build runs 
    ```
 
 Stripe and email delivery are intentionally prepared but not activated for live charging or sending until the corresponding provider keys and signature checks are configured.
+
+## Live smoke test
+
+After `supabase db push`, run `supabase/smoke_test.sql` in the Supabase SQL editor. See `docs/supabase-live-test.md` for the full checklist.
